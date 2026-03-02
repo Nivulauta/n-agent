@@ -356,7 +356,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 
 
 - [ ] 15. Implement Chat History Store
-  - [ ] 15.1 Create chat history persistence module
+  - [x] 15.1 Create chat history persistence module
     - Implement saveMessage function to store in DynamoDB ChatHistory table
     - Use composite key: PK=userId#sessionId, SK=timestamp
     - Encrypt message content using KMS before storage
@@ -364,7 +364,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Complete within 1 second of message send/receive
     - _Requirements: 8.1, 8.2, 8.4, 8.5_
   
-  - [ ] 15.2 Create chat history retrieval module
+  - [x] 15.2 Create chat history retrieval module
     - Implement getHistory function to query ChatHistory table
     - Query with ScanIndexForward=false to get recent messages first
     - Decrypt message content using KMS
@@ -372,7 +372,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Return within 500ms
     - _Requirements: 8.3_
   
-  - [ ] 15.3 Create chat history endpoint Lambda
+  - [x] 15.3 Create chat history endpoint Lambda
     - Implement GET /chat/history handler
     - Accept sessionId, limit, nextToken query parameters
     - Return messages array with pagination

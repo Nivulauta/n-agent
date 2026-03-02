@@ -62,9 +62,9 @@ build_shared_library() {
     # Build TypeScript
     npm run build
     
-    # Rename .js files to .mjs for ES modules
-    echo "  Renaming .js files to .mjs..."
-    find dist -name "*.js" -type f -exec sh -c 'mv "$1" "${1%.js}.mjs"' _ {} \;
+    # # Rename .js files to .mjs for ES modules
+    # echo "  Renaming .js files to .mjs..."
+    # find dist -name "*.js" -type f -exec sh -c 'mv "$1" "${1%.js}.mjs"' _ {} \;
     
     echo "  ✓ $lib_name built successfully"
     cd - > /dev/null
