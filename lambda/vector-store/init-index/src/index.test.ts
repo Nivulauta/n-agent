@@ -50,7 +50,7 @@ describe('OpenSearch Index Initialization', () => {
                             properties: expect.objectContaining({
                                 embedding: expect.objectContaining({
                                     type: 'knn_vector',
-                                    dimension: 1536,
+                                    dimension: 1024,
                                     method: expect.objectContaining({
                                         name: 'hnsw',
                                         space_type: 'cosinesimil',
@@ -172,7 +172,8 @@ describe('OpenSearch Index Initialization', () => {
 
             expect(result.statusCode).toBe(500);
             const body = JSON.parse(result.body);
-            expect(body.error).toBe('Failed to initialize index');
+            expect(body.error).toBe('Failed to create index');
         });
     });
 });
+

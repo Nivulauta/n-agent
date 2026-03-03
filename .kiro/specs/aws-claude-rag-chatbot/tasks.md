@@ -130,7 +130,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 12.1, 12.2, 12.3_
 
 
-- [ ] 7. Implement Bedrock Service integration
+- [x] 7. Implement Bedrock Service integration
   - [x] 7.1 Create Bedrock client wrapper for Claude 3 Sonnet
     - Initialize AWS SDK Bedrock Runtime client
     - Implement generateResponse with streaming support (InvokeModelWithResponseStream)
@@ -169,10 +169,10 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 
 - [x] 8. Implement Embedding Generator with Bedrock Titan
   - [x] 8.1 Create embedding generation module
-    - Initialize Bedrock client for Titan Embeddings (amazon.titan-embed-text-v1)
+    - Initialize Bedrock client for Titan Embeddings v2 (amazon.titan-embed-text-v2:0)
     - Implement generateEmbeddings function for single text input
     - Implement batchGenerateEmbeddings with batch size of 25
-    - Parse Bedrock response to extract 1536-dimension vectors
+    - Parse Bedrock response to extract 1024-dimension vectors
     - _Requirements: 6.1, 6.5_
   
   - [x] 8.2 Implement parallel batch processing
@@ -184,13 +184,13 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
   - [x] 8.3 Write unit tests for embedding generator
     - Test single embedding generation
     - Test batch processing
-    - Test vector dimension validation (1536)
+    - Test vector dimension validation (1024)
     - _Requirements: 6.1, 6.5_
 
 
 - [ ] 9. Implement Vector Store with OpenSearch
   - [x] 9.1 Create OpenSearch index with k-NN configuration
-    - Define index mapping with knn_vector field (1536 dimensions, cosinesimil)
+    - Define index mapping with knn_vector field (1024 dimensions, cosinesimil)
     - Configure HNSW parameters: ef_construction=512, m=16, ef_search=512
     - Set refresh_interval=5s for near-real-time search
     - Create index with proper field types for metadata
@@ -272,7 +272,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 5.1, 5.4, 6.1, 6.3_
 
 
-- [ ] 12. Implement Upload Handler
+- [x] 12. Implement Upload Handler
   - [x] 12.1 Create document upload endpoint Lambda
     - Implement POST /documents/upload handler
     - Validate request: filename, fileSize (max 100MB), contentType (application/pdf)
@@ -297,14 +297,14 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Log deletion to audit log
     - _Requirements: 4.1, 11.2_
   
-  - [ ]* 12.4 Write unit tests for Upload Handler
+  - [x] 12.4 Write unit tests for Upload Handler
     - Test presigned URL generation
     - Test file size validation
     - Test content type validation
     - _Requirements: 4.1, 4.2_
 
 
-- [ ] 13. Implement Query Router
+- [x] 13. Implement Query Router
   - [x] 13.1 Create query classification module
     - Implement heuristic rules for RAG vs direct LLM classification
     - Check for question patterns (who, what, where, when, why, how)
@@ -324,14 +324,14 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Default k=5, increase to k=10 for complex queries
     - _Requirements: 7.5_
   
-  - [ ]* 13.4 Write unit tests for Query Router
+  - [x] 13.4 Write unit tests for Query Router
     - Test heuristic classification with various query types
     - Test confidence scoring
     - Test k selection logic
     - _Requirements: 7.5_
 
 
-- [ ] 14. Implement RAG System
+- [x] 14. Implement RAG System
   - [x] 14.1 Create RAG orchestration module
     - Implement retrieveContext function coordinating embedding and search
     - Generate query embedding using Embedding Generator
@@ -355,7 +355,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 7.1, 7.2, 7.4_
 
 
-- [ ] 15. Implement Chat History Store
+- [x] 15. Implement Chat History Store
   - [x] 15.1 Create chat history persistence module
     - Implement saveMessage function to store in DynamoDB ChatHistory table
     - Use composite key: PK=userId#sessionId, SK=timestamp
@@ -378,7 +378,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Return messages array with pagination
     - _Requirements: 8.3_
   
-  - [ ]* 15.4 Write unit tests for Chat History Store
+  - [x] 15.4 Write unit tests for Chat History Store
     - Test message persistence
     - Test encryption/decryption
     - Test pagination
@@ -386,8 +386,26 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
 
-- [ ] 16. Checkpoint - Ensure backend services are functional
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 16. Checkpoint - Ensure backend services are functional
+  - [x] 16.1 Run all backend unit tests
+    - Execute test suites for Authentication Service
+    - Execute test suites for Rate Limiter
+    - Execute test suites for Audit Logger
+    - Execute test suites for Cache Layer
+    - Execute test suites for Bedrock Service
+    - Execute test suites for Embedding Generator
+    - Execute test suites for Vector Store
+    - Execute test suites for Document Processor
+    - Execute test suites for Chat History Store
+    - Verify all tests pass
+    - _Requirements: All backend requirements 1.x through 12.x_
+  
+  - [x] 16.2 Verify backend integration
+    - Test document upload and processing pipeline end-to-end
+    - Test RAG query flow with embeddings and vector search
+    - Test authentication and session management
+    - Verify all services are properly integrated
+    - _Requirements: Integration of tasks 1-15_
 
 
 - [ ] 17. Implement main chat handler Lambda

@@ -132,7 +132,7 @@ describe('RAGSystem', () => {
     });
 
     describe('retrieveContext - Context Retrieval with Mock Embeddings (Requirement 7.1, 7.2)', () => {
-        const mockQueryEmbedding = new Array(1536).fill(0).map(() => Math.random());
+        const mockQueryEmbedding = new Array(1024).fill(0).map(() => Math.random());
         const mockChunks: DocumentChunk[] = [
             {
                 chunkId: 'chunk-1',
@@ -401,7 +401,7 @@ describe('RAGSystem', () => {
     describe('generateQueryEmbedding', () => {
         it('should generate embedding for query text', async () => {
             // Arrange
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockEmbeddingGenerator.generateEmbedding.mockResolvedValue({
                 embedding: mockEmbedding,
                 inputTextTokenCount: 10,
@@ -413,7 +413,7 @@ describe('RAGSystem', () => {
             // Assert
             expect(mockEmbeddingGenerator.generateEmbedding).toHaveBeenCalledWith('What is AI?');
             expect(result).toEqual(mockEmbedding);
-            expect(result).toHaveLength(1536);
+            expect(result).toHaveLength(1024);
         });
 
         it('should throw error for empty query', async () => {
@@ -784,7 +784,7 @@ describe('RAGSystem', () => {
         it('should execute complete RAG pipeline: embed -> search -> cache -> assemble', async () => {
             // Arrange
             const query = 'Explain neural networks';
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             const mockChunks: DocumentChunk[] = [
                 {
                     chunkId: 'chunk-1',
@@ -828,3 +828,4 @@ describe('RAGSystem', () => {
         });
     });
 });
+

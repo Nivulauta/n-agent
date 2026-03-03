@@ -39,7 +39,7 @@ describe('OpenSearchVectorStore', () => {
         it('should index a single embedding successfully', async () => {
             const embedding: Embedding = {
                 chunkId: 'chunk-1',
-                vector: new Array(1536).fill(0.1),
+                vector: new Array(1024).fill(0.1),
                 text: 'Test document chunk',
                 metadata: {
                     documentId: 'doc-1',
@@ -75,7 +75,7 @@ describe('OpenSearchVectorStore', () => {
         it('should use "system" as default uploadedBy if not provided', async () => {
             const embedding: Embedding = {
                 chunkId: 'chunk-1',
-                vector: new Array(1536).fill(0.1),
+                vector: new Array(1024).fill(0.1),
                 text: 'Test document chunk',
                 metadata: {
                     documentId: 'doc-1',
@@ -97,7 +97,7 @@ describe('OpenSearchVectorStore', () => {
         it('should throw error when indexing fails', async () => {
             const embedding: Embedding = {
                 chunkId: 'chunk-1',
-                vector: new Array(1536).fill(0.1),
+                vector: new Array(1024).fill(0.1),
                 text: 'Test document chunk',
                 metadata: {
                     documentId: 'doc-1',
@@ -121,7 +121,7 @@ describe('OpenSearchVectorStore', () => {
             const embeddings: Embedding[] = [
                 {
                     chunkId: 'chunk-1',
-                    vector: new Array(1536).fill(0.1),
+                    vector: new Array(1024).fill(0.1),
                     text: 'First chunk',
                     metadata: {
                         documentId: 'doc-1',
@@ -133,7 +133,7 @@ describe('OpenSearchVectorStore', () => {
                 },
                 {
                     chunkId: 'chunk-2',
-                    vector: new Array(1536).fill(0.2),
+                    vector: new Array(1024).fill(0.2),
                     text: 'Second chunk',
                     metadata: {
                         documentId: 'doc-1',
@@ -171,7 +171,7 @@ describe('OpenSearchVectorStore', () => {
             const embeddings: Embedding[] = [
                 {
                     chunkId: 'chunk-1',
-                    vector: new Array(1536).fill(0.1),
+                    vector: new Array(1024).fill(0.1),
                     text: 'First chunk',
                     metadata: {
                         documentId: 'doc-1',
@@ -201,7 +201,7 @@ describe('OpenSearchVectorStore', () => {
             const embeddings: Embedding[] = [
                 {
                     chunkId: 'chunk-1',
-                    vector: new Array(1536).fill(0.1),
+                    vector: new Array(1024).fill(0.1),
                     text: 'Test chunk',
                     metadata: {
                         documentId: 'doc-1',
@@ -240,7 +240,7 @@ describe('OpenSearchVectorStore', () => {
 
     describe('searchSimilar', () => {
         it('should search for similar vectors successfully', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
             const k = 5;
 
             mockClient.search.mockResolvedValue({
@@ -292,12 +292,12 @@ describe('OpenSearchVectorStore', () => {
             const invalidVector = new Array(512).fill(0.5); // Wrong dimension
 
             await expect(vectorStore.searchSimilar(invalidVector, 5)).rejects.toThrow(
-                'Invalid query vector dimension: expected 1536, got 512'
+                'Invalid query vector dimension: expected 1024, got 512'
             );
         });
 
         it('should apply document ID filters', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
             const filters: SearchFilters = {
                 documentIds: ['doc-1', 'doc-2']
             };
@@ -319,7 +319,7 @@ describe('OpenSearchVectorStore', () => {
         });
 
         it('should apply date range filters', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
             const filters: SearchFilters = {
                 dateRange: { start: 1000000000, end: 2000000000 }
             };
@@ -348,7 +348,7 @@ describe('OpenSearchVectorStore', () => {
         });
 
         it('should apply metadata filters', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
             const filters: SearchFilters = {
                 metadata: { category: 'technical', status: 'active' }
             };
@@ -369,7 +369,7 @@ describe('OpenSearchVectorStore', () => {
         });
 
         it('should combine multiple filters', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
             const filters: SearchFilters = {
                 documentIds: ['doc-1'],
                 dateRange: { start: 1000000000, end: 2000000000 },
@@ -387,7 +387,7 @@ describe('OpenSearchVectorStore', () => {
         });
 
         it('should return empty array when no results found', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
 
             mockClient.search.mockResolvedValue({
                 body: { hits: { hits: [] } }
@@ -472,7 +472,7 @@ describe('OpenSearchVectorStore', () => {
             const embeddings: Embedding[] = [
                 {
                     chunkId: 'chunk-1',
-                    vector: new Array(1536).fill(0.1),
+                    vector: new Array(1024).fill(0.1),
                     text: 'Test',
                     metadata: {
                         documentId: 'doc-1',
@@ -494,7 +494,7 @@ describe('OpenSearchVectorStore', () => {
 
     describe('searchSimilar - advanced filtering', () => {
         it('should handle search with no filters', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
 
             mockClient.search.mockResolvedValue({
                 body: { hits: { hits: [] } }
@@ -507,7 +507,7 @@ describe('OpenSearchVectorStore', () => {
         });
 
         it('should handle search errors gracefully', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
 
             mockClient.search.mockRejectedValue(new Error('OpenSearch unavailable'));
 
@@ -517,7 +517,7 @@ describe('OpenSearchVectorStore', () => {
         });
 
         it('should return results sorted by score', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
 
             mockClient.search.mockResolvedValue({
                 body: {
@@ -579,7 +579,7 @@ describe('OpenSearchVectorStore', () => {
         });
 
         it('should respect k parameter for result limit', async () => {
-            const queryVector = new Array(1536).fill(0.5);
+            const queryVector = new Array(1024).fill(0.5);
             const k = 2;
 
             mockClient.search.mockResolvedValue({
@@ -598,7 +598,7 @@ describe('OpenSearchVectorStore', () => {
         it('should handle embeddings with special characters in text', async () => {
             const embedding: Embedding = {
                 chunkId: 'chunk-special',
-                vector: new Array(1536).fill(0.1),
+                vector: new Array(1024).fill(0.1),
                 text: 'Text with "quotes" and \'apostrophes\' and <tags>',
                 metadata: {
                     documentId: 'doc-1',
@@ -621,7 +621,7 @@ describe('OpenSearchVectorStore', () => {
             const longText = 'a'.repeat(10000);
             const embedding: Embedding = {
                 chunkId: 'chunk-long',
-                vector: new Array(1536).fill(0.1),
+                vector: new Array(1024).fill(0.1),
                 text: longText,
                 metadata: {
                     documentId: 'doc-1',
@@ -656,3 +656,4 @@ describe('OpenSearchVectorStore', () => {
         });
     });
 });
+

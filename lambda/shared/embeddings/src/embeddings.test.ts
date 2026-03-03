@@ -4,7 +4,7 @@
  * Tests cover:
  * - Single embedding generation
  * - Batch processing
- * - Vector dimension validation (1536)
+ * - Vector dimension validation (1024)
  * - Error handling
  */
 
@@ -30,7 +30,7 @@ describe('EmbeddingGenerator', () => {
 
         generator = new EmbeddingGenerator({
             region: 'us-east-1',
-            modelId: 'amazon.titan-embed-text-v1',
+            modelId: 'amazon.titan-embed-text-v2:0',
         });
     });
 
@@ -39,10 +39,10 @@ describe('EmbeddingGenerator', () => {
     });
 
     describe('generateEmbedding - Single Embedding Generation', () => {
-        it('should generate a valid 1536-dimension embedding for text input', async () => {
+        it('should generate a valid 1024-dimension embedding for text input', async () => {
             // Arrange
             const inputText = 'This is a test document about machine learning.';
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
 
             mockSend.mockResolvedValueOnce({
                 body: new TextEncoder().encode(JSON.stringify({
@@ -55,16 +55,16 @@ describe('EmbeddingGenerator', () => {
             const result = await generator.generateEmbedding(inputText);
 
             // Assert
-            expect(result.embedding).toHaveLength(1536);
+            expect(result.embedding).toHaveLength(1024);
             expect(result.embedding).toEqual(mockEmbedding);
             expect(result.inputTextTokenCount).toBe(10);
             expect(mockSend).toHaveBeenCalledTimes(1);
         });
 
-        it('should validate embedding dimensions are exactly 1536', async () => {
+        it('should validate embedding dimensions are exactly 1024', async () => {
             // Arrange
             const inputText = 'Test text';
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
 
             mockSend.mockResolvedValueOnce({
                 body: new TextEncoder().encode(JSON.stringify({
@@ -77,7 +77,7 @@ describe('EmbeddingGenerator', () => {
             const result = await generator.generateEmbedding(inputText);
 
             // Assert
-            expect(result.embedding).toHaveLength(1536);
+            expect(result.embedding).toHaveLength(1024);
             expect(Array.isArray(result.embedding)).toBe(true);
             expect(result.embedding.every(val => typeof val === 'number')).toBe(true);
         });
@@ -97,7 +97,7 @@ describe('EmbeddingGenerator', () => {
             // Act & Assert
             await expect(generator.generateEmbedding(inputText))
                 .rejects
-                .toThrow('Invalid embedding dimensions: expected 1536, got 512');
+                .toThrow('Invalid embedding dimensions: expected 1024, got 512');
         });
 
         it('should throw error for empty text input', async () => {
@@ -144,7 +144,7 @@ describe('EmbeddingGenerator', () => {
         it('should call Bedrock with correct parameters', async () => {
             // Arrange
             const inputText = 'Test document';
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
 
             mockSend.mockResolvedValueOnce({
                 body: new TextEncoder().encode(JSON.stringify({
@@ -158,7 +158,7 @@ describe('EmbeddingGenerator', () => {
 
             // Assert
             expect(InvokeModelCommand).toHaveBeenCalledWith({
-                modelId: 'amazon.titan-embed-text-v1',
+                modelId: 'amazon.titan-embed-text-v2:0',
                 contentType: 'application/json',
                 accept: 'application/json',
                 body: JSON.stringify({ inputText }),
@@ -176,7 +176,7 @@ describe('EmbeddingGenerator', () => {
             ];
 
             const mockEmbeddings = texts.map(() =>
-                new Array(1536).fill(0).map(() => Math.random())
+                new Array(1024).fill(0).map(() => Math.random())
             );
 
             mockSend
@@ -204,9 +204,9 @@ describe('EmbeddingGenerator', () => {
 
             // Assert
             expect(result.embeddings).toHaveLength(3);
-            expect(result.embeddings[0]).toHaveLength(1536);
-            expect(result.embeddings[1]).toHaveLength(1536);
-            expect(result.embeddings[2]).toHaveLength(1536);
+            expect(result.embeddings[0]).toHaveLength(1024);
+            expect(result.embeddings[1]).toHaveLength(1024);
+            expect(result.embeddings[2]).toHaveLength(1024);
             expect(result.totalTokenCount).toBe(18);
             expect(mockSend).toHaveBeenCalledTimes(3);
         });
@@ -216,7 +216,7 @@ describe('EmbeddingGenerator', () => {
             const texts = new Array(50).fill(0).map((_, i) => `Document ${i}`);
             const batchSize = 25;
 
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockSend.mockResolvedValue({
                 body: new TextEncoder().encode(JSON.stringify({
                     embedding: mockEmbedding,
@@ -229,15 +229,15 @@ describe('EmbeddingGenerator', () => {
 
             // Assert
             expect(result.embeddings).toHaveLength(50);
-            expect(result.embeddings.every(emb => emb.length === 1536)).toBe(true);
+            expect(result.embeddings.every(emb => emb.length === 1024)).toBe(true);
             expect(mockSend).toHaveBeenCalledTimes(50);
         });
 
-        it('should validate all embeddings have 1536 dimensions', async () => {
+        it('should validate all embeddings have 1024 dimensions', async () => {
             // Arrange
             const texts = ['Text 1', 'Text 2', 'Text 3', 'Text 4', 'Text 5'];
 
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockSend.mockResolvedValue({
                 body: new TextEncoder().encode(JSON.stringify({
                     embedding: mockEmbedding,
@@ -251,7 +251,7 @@ describe('EmbeddingGenerator', () => {
             // Assert
             expect(result.embeddings).toHaveLength(5);
             result.embeddings.forEach(embedding => {
-                expect(embedding).toHaveLength(1536);
+                expect(embedding).toHaveLength(1024);
                 expect(Array.isArray(embedding)).toBe(true);
                 expect(embedding.every(val => typeof val === 'number')).toBe(true);
             });
@@ -283,7 +283,7 @@ describe('EmbeddingGenerator', () => {
             const texts = ['Text 1', 'Text 2', 'Text 3'];
             const progressCallback = vi.fn();
 
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockSend.mockResolvedValue({
                 body: new TextEncoder().encode(JSON.stringify({
                     embedding: mockEmbedding,
@@ -318,7 +318,7 @@ describe('EmbeddingGenerator', () => {
             const texts = new Array(100).fill(0).map((_, i) => `Document ${i}`);
             const batchSize = 25;
 
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockSend.mockResolvedValue({
                 body: new TextEncoder().encode(JSON.stringify({
                     embedding: mockEmbedding,
@@ -331,7 +331,7 @@ describe('EmbeddingGenerator', () => {
 
             // Assert
             expect(result.embeddings).toHaveLength(100);
-            expect(result.embeddings.every(emb => emb.length === 1536)).toBe(true);
+            expect(result.embeddings.every(emb => emb.length === 1024)).toBe(true);
             expect(result.totalTokenCount).toBe(500); // 100 texts * 5 tokens each
         });
     });
@@ -343,7 +343,7 @@ describe('EmbeddingGenerator', () => {
             const batchSize = 25;
             const concurrentBatches = 3;
 
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockSend.mockResolvedValue({
                 body: new TextEncoder().encode(JSON.stringify({
                     embedding: mockEmbedding,
@@ -360,15 +360,15 @@ describe('EmbeddingGenerator', () => {
 
             // Assert
             expect(result.embeddings).toHaveLength(75);
-            expect(result.embeddings.every(emb => emb.length === 1536)).toBe(true);
+            expect(result.embeddings.every(emb => emb.length === 1024)).toBe(true);
             expect(mockSend).toHaveBeenCalledTimes(75);
         });
 
-        it('should validate all embeddings have 1536 dimensions in parallel processing', async () => {
+        it('should validate all embeddings have 1024 dimensions in parallel processing', async () => {
             // Arrange
             const texts = new Array(30).fill(0).map((_, i) => `Text ${i}`);
 
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockSend.mockResolvedValue({
                 body: new TextEncoder().encode(JSON.stringify({
                     embedding: mockEmbedding,
@@ -382,7 +382,7 @@ describe('EmbeddingGenerator', () => {
             // Assert
             expect(result.embeddings).toHaveLength(30);
             result.embeddings.forEach(embedding => {
-                expect(embedding).toHaveLength(1536);
+                expect(embedding).toHaveLength(1024);
                 expect(Array.isArray(embedding)).toBe(true);
             });
         });
@@ -406,7 +406,7 @@ describe('EmbeddingGenerator', () => {
             const texts = new Array(10).fill(0).map((_, i) => `Text ${i}`);
             const progressCallback = vi.fn();
 
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
             mockSend.mockResolvedValue({
                 body: new TextEncoder().encode(JSON.stringify({
                     embedding: mockEmbedding,
@@ -435,7 +435,7 @@ describe('EmbeddingGenerator', () => {
         it('should retry on throttling errors', async () => {
             // Arrange
             const inputText = 'Test text';
-            const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
+            const mockEmbedding = new Array(1024).fill(0).map(() => Math.random());
 
             const throttlingError = new Error('Throttling');
             (throttlingError as any).name = 'ThrottlingException';
@@ -454,7 +454,7 @@ describe('EmbeddingGenerator', () => {
             const result = await generator.generateEmbedding(inputText);
 
             // Assert
-            expect(result.embedding).toHaveLength(1536);
+            expect(result.embedding).toHaveLength(1024);
             expect(mockSend).toHaveBeenCalledTimes(3);
         });
 

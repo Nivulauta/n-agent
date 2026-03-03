@@ -96,7 +96,7 @@ This document specifies the requirements for an AWS-based RAG (Retrieval-Augment
 2. THE Embedding_Generator SHALL process at least 100 text chunks per minute
 3. WHEN embedding generation completes, THE Embedding_Generator SHALL store vectors in the Vector_Store with document metadata
 4. THE Embedding_Generator SHALL associate each embedding with its source document ID and page number
-5. THE Embedding_Generator SHALL generate embeddings with 1536 dimensions for compatibility with the Vector_Store
+5. THE Embedding_Generator SHALL generate embeddings with 1024 dimensions for compatibility with the Vector_Store
 
 ### Requirement 7: Vector Search and Retrieval
 

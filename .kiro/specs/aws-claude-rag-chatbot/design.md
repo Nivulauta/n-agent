@@ -246,7 +246,7 @@ interface DocumentChunk {
 ```
 
 **Key Design Decisions**:
-- Use Amazon Bedrock Titan Embeddings (1536 dimensions) for consistency
+- Use Amazon Bedrock Titan Embeddings v2 (amazon.titan-embed-text-v2:0) with 1024 dimensions for consistency
 - Implement hybrid search combining vector similarity and keyword matching
 - Cache query embeddings for 15 minutes to reduce Bedrock calls
 - Include document metadata (filename, page) in context for citations
@@ -364,7 +364,7 @@ interface EmbeddingGenerator {
 
 interface Embedding {
   chunkId: string
-  vector: number[] // 1536 dimensions
+  vector: number[] // 1024 dimensions (Titan Embeddings v2)
   text: string
   metadata: ChunkMetadata
 }
@@ -379,7 +379,7 @@ interface ChunkMetadata {
 ```
 
 **Key Design Decisions**:
-- Use amazon.titan-embed-text-v1 model (1536 dimensions)
+- Use amazon.titan-embed-text-v2:0 model (1024 dimensions)
 - Batch embeddings in groups of 25 to optimize throughput
 - Implement parallel processing with Lambda concurrency
 - Store embeddings in OpenSearch with document metadata for filtering
@@ -421,7 +421,7 @@ interface SearchResult {
 
 **Key Design Decisions**:
 - Use OpenSearch k-NN with HNSW algorithm for approximate nearest neighbor search
-- Configure index with 1536 dimensions, cosine similarity metric
+- Configure index with 1024 dimensions (Titan Embeddings v2), cosine similarity metric
 - Set ef_construction=512, m=16 for balance of accuracy and performance
 - Implement index refresh interval of 5 seconds for near-real-time search
 - Use OpenSearch's filtering capabilities for metadata-based search refinement
@@ -734,7 +734,7 @@ interface DocumentMetadataRecord {
       "text": { "type": "text" },
       "embedding": {
         "type": "knn_vector",
-        "dimension": 1536,
+        "dimension": 1024,
         "method": {
           "name": "hnsw",
           "space_type": "cosinesimil",
@@ -930,10 +930,12 @@ Response:
 }
 ```
 
-**Titan Embeddings Request**
+**Titan Embeddings v2 Request**
 ```json
 {
-  "inputText": "Text to embed..."
+  "inputText": "Text to embed...",
+  "dimensions": 1024,
+  "normalize": true
 }
 ```
 

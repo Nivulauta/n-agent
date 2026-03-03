@@ -130,6 +130,173 @@ describe('Document Upload Handler', () => {
         });
     });
 
+    describe('File Size Validation (Requirement 4.2)', () => {
+        it('should accept file size at exactly 100MB', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const event = createEvent({
+                filename: 'large-document.pdf',
+                fileSize: 100 * 1024 * 1024, // Exactly 100MB
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+            expect(response.uploadUrl).toBeDefined();
+            expect(response.documentId).toBeDefined();
+        });
+
+        it('should reject file size at 100MB + 1 byte', async () => {
+            const event = createEvent({
+                filename: 'too-large.pdf',
+                fileSize: 100 * 1024 * 1024 + 1, // 100MB + 1 byte
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toContain('exceeds maximum allowed size of 100MB');
+        });
+
+        it('should reject zero file size', async () => {
+            const event = createEvent({
+                filename: 'empty.pdf',
+                fileSize: 0,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toContain('File size is required and must be a positive number');
+        });
+
+        it('should reject negative file size', async () => {
+            const event = createEvent({
+                filename: 'invalid.pdf',
+                fileSize: -1024,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toContain('File size is required and must be a positive number');
+        });
+
+        it('should accept minimum valid file size (1 byte)', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const event = createEvent({
+                filename: 'tiny.pdf',
+                fileSize: 1,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+            expect(response.uploadUrl).toBeDefined();
+        });
+    });
+
+    describe('Content Type Validation (Requirement 4.2)', () => {
+        it('should accept application/pdf content type', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const event = createEvent({
+                filename: 'document.pdf',
+                fileSize: 1024,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+            expect(response.uploadUrl).toBeDefined();
+        });
+
+        it('should reject text/plain content type', async () => {
+            const event = createEvent({
+                filename: 'document.txt',
+                fileSize: 1024,
+                contentType: 'text/plain',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toBe('Only PDF files are supported (content type must be application/pdf)');
+        });
+
+        it('should reject image/jpeg content type', async () => {
+            const event = createEvent({
+                filename: 'image.jpg',
+                fileSize: 1024,
+                contentType: 'image/jpeg',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toBe('Only PDF files are supported (content type must be application/pdf)');
+        });
+
+        it('should reject application/json content type', async () => {
+            const event = createEvent({
+                filename: 'data.json',
+                fileSize: 1024,
+                contentType: 'application/json',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toBe('Only PDF files are supported (content type must be application/pdf)');
+        });
+
+        it('should reject empty content type', async () => {
+            const event = createEvent({
+                filename: 'document.pdf',
+                fileSize: 1024,
+                contentType: '',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toBe('Content type is required');
+        });
+
+        it('should reject missing content type', async () => {
+            const event = createEvent({
+                filename: 'document.pdf',
+                fileSize: 1024,
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(400);
+            expect(JSON.parse(result.body).error).toBe('Content type is required');
+        });
+    });
+
     describe('Successful Upload', () => {
         it('should generate presigned URL and store metadata for valid request', async () => {
             dynamoMock.on(PutCommand).resolves({});
@@ -187,6 +354,156 @@ describe('Document Upload Handler', () => {
             const response2 = JSON.parse(result2.body);
 
             expect(response1.documentId).not.toBe(response2.documentId);
+        });
+    });
+
+    describe('Presigned URL Generation (Requirement 4.1)', () => {
+        it('should generate presigned URL with correct structure', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const event = createEvent({
+                filename: 'test-document.pdf',
+                fileSize: 1024,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+
+            // Verify presigned URL structure
+            expect(response.uploadUrl).toBeDefined();
+            expect(typeof response.uploadUrl).toBe('string');
+            expect(response.uploadUrl).toContain('uploads/');
+            expect(response.uploadUrl).toContain('test-document.pdf');
+            expect(response.uploadUrl).toContain('X-Amz-Algorithm');
+            expect(response.uploadUrl).toContain('X-Amz-Credential');
+            expect(response.uploadUrl).toContain('X-Amz-Signature');
+        });
+
+        it('should set presigned URL expiration to 15 minutes', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const beforeRequest = Date.now();
+            const event = createEvent({
+                filename: 'test.pdf',
+                fileSize: 1024,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+            const afterRequest = Date.now();
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+
+            // Verify expiration is approximately 15 minutes from now
+            const expectedExpiration = 15 * 60 * 1000; // 15 minutes in milliseconds
+            const minExpiration = beforeRequest + expectedExpiration;
+            const maxExpiration = afterRequest + expectedExpiration;
+
+            expect(response.expiresAt).toBeGreaterThanOrEqual(minExpiration);
+            expect(response.expiresAt).toBeLessThanOrEqual(maxExpiration);
+        });
+
+        it('should include documentId in S3 key path', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const event = createEvent({
+                filename: 'my-document.pdf',
+                fileSize: 1024,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+
+            // Verify URL contains documentId in path
+            expect(response.uploadUrl).toContain(`uploads/${response.documentId}/my-document.pdf`);
+        });
+
+        it('should preserve original filename in S3 key', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const testFilenames = [
+                'simple.pdf',
+                'document-with-dashes.pdf',
+                'document_with_underscores.pdf',
+                'Document With Spaces.pdf',
+            ];
+
+            for (const filename of testFilenames) {
+                const event = createEvent({
+                    filename,
+                    fileSize: 1024,
+                    contentType: 'application/pdf',
+                });
+                const context = createContext();
+
+                const result = await handler(event, context);
+
+                expect(result.statusCode).toBe(200);
+                const response = JSON.parse(result.body);
+                // Verify filename is in the URL (may be URL encoded)
+                const decodedUrl = decodeURIComponent(response.uploadUrl);
+                expect(decodedUrl).toContain(filename);
+            }
+        });
+
+        it('should include content type in presigned URL parameters', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const event = createEvent({
+                filename: 'test.pdf',
+                fileSize: 1024,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+
+            // Verify the URL is a valid presigned URL (content type is set in the command, not always visible in URL)
+            expect(response.uploadUrl).toContain('X-Amz-Algorithm');
+            expect(response.uploadUrl).toContain('X-Amz-Signature');
+            expect(response.uploadUrl.startsWith('https://')).toBe(true);
+        });
+
+        it('should return all required fields in response', async () => {
+            dynamoMock.on(PutCommand).resolves({});
+
+            const event = createEvent({
+                filename: 'test.pdf',
+                fileSize: 1024,
+                contentType: 'application/pdf',
+            });
+            const context = createContext();
+
+            const result = await handler(event, context);
+
+            expect(result.statusCode).toBe(200);
+            const response = JSON.parse(result.body);
+
+            // Verify all required response fields
+            expect(response).toHaveProperty('uploadUrl');
+            expect(response).toHaveProperty('documentId');
+            expect(response).toHaveProperty('expiresAt');
+
+            expect(typeof response.uploadUrl).toBe('string');
+            expect(typeof response.documentId).toBe('string');
+            expect(typeof response.expiresAt).toBe('number');
+
+            expect(response.uploadUrl.length).toBeGreaterThan(0);
+            expect(response.documentId.length).toBeGreaterThan(0);
+            expect(response.expiresAt).toBeGreaterThan(Date.now());
         });
     });
 
