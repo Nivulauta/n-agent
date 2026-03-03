@@ -161,6 +161,14 @@ indexContent = indexContent.replace(
 
 writeFileSync(indexMjsPath, indexContent, 'utf-8');
 
+// Step 8: Create package.json in dist folder to mark as ES module
+console.log('\n📝 Creating package.json in dist folder...');
+const distPackageJson = {
+    type: 'module'
+};
+writeFileSync(join(__dirname, 'dist', 'package.json'), JSON.stringify(distPackageJson, null, 2), 'utf-8');
+console.log('✅ Created dist/package.json');
+
 console.log('\n✅ Build complete!');
 console.log('📁 Output: dist/index.mjs');
 console.log('📦 Dependencies: dist/node_modules/');

@@ -18,7 +18,7 @@ import type {
 } from './types.js';
 import { withRetry, withRetryGenerator } from './retry.js';
 
-const DEFAULT_MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0';
+const DEFAULT_MODEL_ID = 'global.anthropic.claude-haiku-4-5-20251001-v1:0';
 const DEFAULT_MAX_TOKENS = 2048;
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_TOP_P = 0.9;
@@ -162,9 +162,14 @@ export class BedrockService {
             anthropic_version: 'bedrock-2023-05-31',
             max_tokens: request.maxTokens || this.defaultMaxTokens,
             temperature: request.temperature ?? this.defaultTemperature,
-            top_p: request.topP ?? this.defaultTopP,
             messages,
         };
+
+        // Only add top_p if explicitly provided in request (not using default)
+        // Some models don't support both temperature and top_p
+        if (request.topP !== undefined) {
+            payload.top_p = request.topP;
+        }
 
         // Add system prompt if provided
         if (request.systemPrompt) {

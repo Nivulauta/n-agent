@@ -144,6 +144,16 @@ module "websocket_handlers" {
   websocket_api_id            = module.websocket.websocket_api_id
   websocket_api_execution_arn = module.websocket.websocket_api_execution_arn
   kms_key_arn                 = module.security.kms_key_arn
+  rate_limits_table_name      = module.database.rate_limits_table_name
+  rate_limits_table_arn       = module.database.rate_limits_table_arn
+  chat_history_table_name     = module.database.chat_history_table_name
+  chat_history_table_arn      = module.database.chat_history_table_arn
+  opensearch_endpoint         = module.opensearch.endpoint
+  opensearch_domain_arn       = module.opensearch.domain_arn
+  cache_endpoint              = module.cache.redis_endpoint
+  cache_port                  = module.cache.redis_port
+  private_subnet_ids          = module.networking.private_subnet_ids
+  lambda_security_group_id    = module.security.lambda_security_group_id
 }
 
 module "websocket" {

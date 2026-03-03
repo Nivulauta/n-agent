@@ -21,7 +21,7 @@ const KMS_KEY_ID = process.env.KMS_KEY_ID || '';
 const OPENSEARCH_ENDPOINT = process.env.OPENSEARCH_ENDPOINT || '';
 const CACHE_HOST = process.env.CACHE_HOST || '';
 const CACHE_PORT = parseInt(process.env.CACHE_PORT || '6379', 10);
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+// AWS_REGION is automatically available in Lambda environment
 
 const rateLimiter = new RateLimiter();
 
@@ -292,14 +292,14 @@ function initializeServices(): void {
         chatHistoryStore = new ChatHistoryStore({
             tableName: CHAT_HISTORY_TABLE,
             kmsKeyId: KMS_KEY_ID,
-            region: AWS_REGION,
+            // region is auto-detected from Lambda environment
         });
     }
 
     if (!ragSystem && OPENSEARCH_ENDPOINT) {
         ragSystem = new RAGSystem({
             opensearchEndpoint: OPENSEARCH_ENDPOINT,
-            region: AWS_REGION,
+            // region is auto-detected from Lambda environment
             cacheHost: CACHE_HOST,
             cachePort: CACHE_PORT,
         });
@@ -314,7 +314,7 @@ function initializeServices(): void {
 
     if (!bedrockService) {
         bedrockService = new BedrockService({
-            region: AWS_REGION,
+            // region is auto-detected from Lambda environment
         });
     }
 }
@@ -363,11 +363,13 @@ async function processChatMessage(
         if (chatHistoryStore) {
             try {
                 const historyResult = await chatHistoryStore.getHistory(userId, sessionId, 10);
-                conversationHistory = historyResult.messages.map(msg => ({
-                    role: msg.role,
-                    content: msg.content,
-                    timestamp: msg.timestamp,
-                }));
+                conversationHistory = historyResult.messages
+                    .filter(msg => msg.content && msg.content.trim().length > 0) // Filter out empty messages
+                    .map(msg => ({
+                        role: msg.role,
+                        content: msg.content,
+                        timestamp: msg.timestamp,
+                    }));
                 console.log(`Retrieved ${conversationHistory.length} messages from history`);
             } catch (error) {
                 console.error('Error retrieving chat history:', error);
@@ -496,6 +498,12 @@ async function processChatMessage(
             systemPrompt = assembledContext.systemPrompt;
         }
 
+        // Validate that finalPrompt is not empty
+        if (!finalPrompt || finalPrompt.trim().length === 0) {
+            console.error('Final prompt is empty, using original message');
+            finalPrompt = message || 'Hello'; // Fallback to original message or default
+        }
+
         // Step 3: Invoke Bedrock Service with streaming enabled
         console.log('Invoking Bedrock Service with streaming...');
         if (!bedrockService) {
@@ -515,13 +523,14 @@ async function processChatMessage(
                 for await (const chunk of bedrockService!.generateResponse({
                     prompt: finalPrompt,
                     systemPrompt,
-                    conversationHistory: conversationHistory.map(msg => ({
-                        role: msg.role as 'user' | 'assistant',
-                        content: msg.content,
-                    })),
+                    conversationHistory: conversationHistory
+                        .filter(msg => msg.content && msg.content.trim().length > 0) // Filter empty messages again
+                        .map(msg => ({
+                            role: msg.role as 'user' | 'assistant',
+                            content: msg.content,
+                        })),
                     maxTokens: 2048,
-                    temperature: 0.7,
-                    topP: 0.9,
+                    temperature: 0.7
                 })) {
                     if (chunk.text) {
                         fullResponse += chunk.text;

@@ -38,7 +38,7 @@ aws lambda invoke `
   response.json
 
 # Option 3: Using base64 encoding (most reliable)
-$payload = '{"lambdaRoleArn":"arn:aws:iam::177981160483:role/dev-chatbot-generate-embeddings-role"}'
+$payload = '{"lambdaRoleArn":"arn:aws:iam::177981160483:role/dev-websocket-message-role"}'
 $bytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
 $base64 = [Convert]::ToBase64String($bytes)
 aws lambda invoke --function-name dev-opensearch-configure-access --payload $base64 response.json

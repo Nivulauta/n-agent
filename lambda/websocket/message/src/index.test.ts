@@ -135,6 +135,15 @@ process.env.AWS_REGION = 'us-east-1';
 // NOW import the handler after mocks and env vars are set up
 const { handler } = await import('./index.js');
 
+// Type alias for the expected result type
+type HandlerResult = { statusCode: number; body?: string; headers?: Record<string, string> };
+
+// Helper to assert result is an object with statusCode
+const assertResultWithStatusCode = (result: unknown): asserts result is HandlerResult => {
+    expect(typeof result).toBe('object');
+    expect(result).toHaveProperty('statusCode');
+};
+
 describe('WebSocket Chat Message Handler', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -198,7 +207,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(400);
             expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
@@ -218,7 +227,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: {},
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(400);
             expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
@@ -238,7 +247,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 123 },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(400);
             expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
@@ -262,7 +271,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(401);
             expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
@@ -294,8 +303,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
-
+            const result = await handler(event) as HandlerResult;
             expect(result.statusCode).toBe(401);
         });
 
@@ -323,7 +331,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
             expect(mockRateLimiterCheckRateLimit).toHaveBeenCalledWith(
@@ -361,7 +369,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
             expect(mockRateLimiterCheckRateLimit).toHaveBeenCalledWith(
@@ -384,7 +392,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(429);
             expect(result.headers).toHaveProperty('Retry-After', '30');
@@ -411,7 +419,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
             const body = JSON.parse(result.body || '{}');
@@ -507,7 +515,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
             // Verify typing indicator was sent
@@ -532,7 +540,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
             const body = JSON.parse(result.body || '{}');
@@ -575,7 +583,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Verify the handler completed successfully
             expect(result.statusCode).toBe(200);
@@ -590,7 +598,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Verify the handler completed successfully
             expect(result.statusCode).toBe(200);
@@ -608,7 +616,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
 
@@ -659,7 +667,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'What is in the document?', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Verify the handler completed successfully
             expect(result.statusCode).toBe(200);
@@ -704,7 +712,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'What is in the document?', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Verify the handler completed successfully
             expect(result.statusCode).toBe(200);
@@ -747,7 +755,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'What is in the document?', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Should still return success, just without RAG context
             expect(result.statusCode).toBe(200);
@@ -761,7 +769,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Should still process the message
             expect(result.statusCode).toBe(200);
@@ -777,7 +785,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // When DynamoDB fails, getUserContextFromConnection returns null,
             // which triggers the unauthorized (401) response
@@ -813,7 +821,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(500);
         });
@@ -822,7 +830,7 @@ describe('WebSocket Chat Message Handler', () => {
             const event = createMockEvent(null);
             event.body = 'invalid json{';
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(500);
         });
@@ -855,7 +863,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
 
@@ -872,7 +880,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test user message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
 
@@ -894,7 +902,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
 
@@ -919,7 +927,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
 
@@ -964,7 +972,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'What is in the document?', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
 
@@ -987,7 +995,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Should still complete successfully
             expect(result.statusCode).toBe(200);
@@ -1004,7 +1012,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Should still complete successfully
             expect(result.statusCode).toBe(200);
@@ -1018,7 +1026,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             // Should still complete successfully
             expect(result.statusCode).toBe(200);
@@ -1037,7 +1045,7 @@ describe('WebSocket Chat Message Handler', () => {
                 data: { message: 'test message', sessionId: 'session-123' },
             });
 
-            const result = await handler(event);
+            const result = await handler(event) as HandlerResult;
 
             expect(result.statusCode).toBe(200);
 
@@ -1050,6 +1058,654 @@ describe('WebSocket Chat Message Handler', () => {
 
             const logCall = mockLogAPICall.mock.calls[0][0];
             expect(logCall.duration).toBeGreaterThanOrEqual(100);
+        });
+    });
+
+    describe('Integration Tests (Task 17.6)', () => {
+        beforeEach(() => {
+            const now = Math.floor(Date.now() / 1000);
+            mockDocClientSend.mockResolvedValue({
+                Item: {
+                    PK: 'CONNECTION#test-connection-id',
+                    SK: 'CONNECTION#test-connection-id',
+                    connectionId: 'test-connection-id',
+                    userId: 'user-123',
+                    connectedAt: now - 100,
+                    ttl: now + 600,
+                },
+            });
+
+            mockRateLimiterCheckRateLimit.mockResolvedValue({
+                allowed: true,
+                remainingRequests: 59,
+                resetAt: Date.now() + 60000,
+            });
+        });
+
+        describe('End-to-End Chat Flow with RAG Retrieval', () => {
+            it('should complete full chat flow with RAG retrieval (Requirement 3.1, 7.1)', async () => {
+                // Setup: Configure RAG retrieval
+                mockClassifyQuery.mockReturnValue({
+                    requiresRetrieval: true,
+                    confidence: 0.95,
+                    reasoning: 'document keyword found',
+                    suggestedK: 5,
+                });
+
+                mockChatHistoryGetHistory.mockResolvedValue({
+                    messages: [
+                        { role: 'user', content: 'previous question', timestamp: Date.now() - 2000 },
+                        { role: 'assistant', content: 'previous answer', timestamp: Date.now() - 1000 },
+                    ],
+                });
+
+                mockRAGRetrieveContext.mockResolvedValue({
+                    chunks: [
+                        {
+                            chunkId: 'chunk-1',
+                            documentId: 'doc-1',
+                            documentName: 'technical-spec.pdf',
+                            pageNumber: 5,
+                            text: 'The system uses AWS Lambda for serverless compute.',
+                            score: 0.92,
+                        },
+                        {
+                            chunkId: 'chunk-2',
+                            documentId: 'doc-1',
+                            documentName: 'technical-spec.pdf',
+                            pageNumber: 7,
+                            text: 'OpenSearch provides vector search capabilities.',
+                            score: 0.88,
+                        },
+                    ],
+                    fromCache: false,
+                    queryEmbedding: [0.1, 0.2, 0.3],
+                });
+
+                mockRAGAssembleContext.mockReturnValue({
+                    systemPrompt: 'You are a helpful assistant. Use the following context to answer questions.',
+                    prompt: 'Context: AWS Lambda... OpenSearch...\n\nQuestion: What technologies are used?',
+                    conversationHistory: [],
+                    totalTokens: 250,
+                    truncated: false,
+                });
+
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    yield { text: 'Based on the documents, ', isComplete: false };
+                    yield { text: 'the system uses AWS Lambda ', isComplete: false };
+                    yield { text: 'and OpenSearch.', isComplete: false };
+                    yield { text: '', isComplete: true, tokenCount: 15 };
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'What technologies are used?', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Success response
+                expect(result.statusCode).toBe(200);
+                const body = JSON.parse(result.body || '{}');
+                expect(body.message).toBe('Message processed');
+                expect(body.cached).toBe(false);
+
+                // Verify: Chat history was retrieved
+                expect(mockChatHistoryGetHistory).toHaveBeenCalledWith('user-123', 'session-123', 10);
+
+                // Verify: Query was classified
+                expect(mockClassifyQuery).toHaveBeenCalledWith(
+                    'What technologies are used?',
+                    expect.arrayContaining([
+                        expect.objectContaining({ role: 'user', content: 'previous question' }),
+                    ])
+                );
+
+                // Verify: RAG retrieval was performed
+                expect(mockRAGInitialize).toHaveBeenCalled();
+                expect(mockRAGRetrieveContext).toHaveBeenCalledWith(
+                    'What technologies are used?',
+                    expect.objectContaining({ k: 5 })
+                );
+
+                // Verify: Context was assembled
+                expect(mockRAGAssembleContext).toHaveBeenCalledWith(
+                    'What technologies are used?',
+                    expect.arrayContaining([
+                        expect.objectContaining({ chunkId: 'chunk-1' }),
+                        expect.objectContaining({ chunkId: 'chunk-2' }),
+                    ]),
+                    expect.any(Array),
+                    expect.any(Object)
+                );
+
+                // Verify: Typing indicator was sent
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'typing_indicator',
+                        payload: { isTyping: true },
+                    })
+                );
+
+                // Verify: Bedrock was invoked with assembled context
+                expect(mockBedrockGenerateResponse).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        prompt: expect.stringContaining('AWS Lambda'),
+                        systemPrompt: expect.stringContaining('helpful assistant'),
+                        conversationHistory: expect.any(Array),
+                    })
+                );
+
+                // Verify: Response chunks were streamed
+                const chatResponseCalls = mockMessageSenderSendMessage.mock.calls.filter(
+                    call => call[1]?.type === 'chat_response'
+                );
+                expect(chatResponseCalls.length).toBeGreaterThan(0);
+
+                // Verify: Final message includes retrieved chunks metadata
+                const finalMessage = chatResponseCalls[chatResponseCalls.length - 1][1];
+                expect(finalMessage.payload.isComplete).toBe(true);
+                expect(finalMessage.payload.retrievedChunks).toBeDefined();
+                expect(finalMessage.payload.retrievedChunks).toHaveLength(2);
+                expect(finalMessage.payload.retrievedChunks[0]).toMatchObject({
+                    documentName: 'technical-spec.pdf',
+                    pageNumber: 5,
+                });
+
+                // Verify: Messages were saved to chat history
+                expect(mockChatHistorySaveMessage).toHaveBeenCalledTimes(2);
+                expect(mockChatHistorySaveMessage).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        role: 'user',
+                        content: 'What technologies are used?',
+                    })
+                );
+                expect(mockChatHistorySaveMessage).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        role: 'assistant',
+                        content: 'Based on the documents, the system uses AWS Lambda and OpenSearch.',
+                        metadata: expect.objectContaining({
+                            retrievedChunks: ['chunk-1', 'chunk-2'],
+                            tokenCount: 15,
+                        }),
+                    })
+                );
+
+                // Verify: API call was logged
+                expect(mockLogAPICall).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        service: 'bedrock',
+                        operation: 'generateResponse',
+                        userId: 'user-123',
+                        statusCode: 200,
+                        tokenCount: 15,
+                        duration: expect.any(Number),
+                    })
+                );
+
+                // Verify: Response was cached
+                expect(mockCacheSetCachedResponse).toHaveBeenCalledWith(
+                    'What technologies are used?',
+                    'Based on the documents, the system uses AWS Lambda and OpenSearch.'
+                );
+            });
+
+            it('should handle conversational queries without RAG retrieval', async () => {
+                // Setup: Configure non-RAG query
+                mockClassifyQuery.mockReturnValue({
+                    requiresRetrieval: false,
+                    confidence: 0.98,
+                    reasoning: 'greeting pattern',
+                    suggestedK: 0,
+                });
+
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    yield { text: 'Hello! ', isComplete: false };
+                    yield { text: 'How can I help you today?', isComplete: false };
+                    yield { text: '', isComplete: true, tokenCount: 8 };
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'Hello!', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Success response
+                expect(result.statusCode).toBe(200);
+
+                // Verify: RAG was NOT invoked
+                expect(mockRAGRetrieveContext).not.toHaveBeenCalled();
+                expect(mockRAGAssembleContext).not.toHaveBeenCalled();
+
+                // Verify: Bedrock was invoked directly
+                expect(mockBedrockGenerateResponse).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        prompt: 'Hello!',
+                    })
+                );
+
+                // Verify: Response was streamed
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'chat_response',
+                    })
+                );
+            });
+        });
+
+        describe('Cache Hit Scenario', () => {
+            it('should return cached response immediately without invoking Bedrock (Requirement 12.1)', async () => {
+                // Setup: Configure cache hit
+                mockCacheGetCachedResponse.mockResolvedValue('This is a cached response from a previous query.');
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'What is the capital of France?', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Success response with cached flag
+                expect(result.statusCode).toBe(200);
+                const body = JSON.parse(result.body || '{}');
+                expect(body.message).toBe('Message processed');
+                expect(body.cached).toBe(true);
+
+                // Verify: Cache was checked
+                expect(mockCacheConnect).toHaveBeenCalled();
+                expect(mockCacheGetCachedResponse).toHaveBeenCalledWith('What is the capital of France?');
+
+                // Verify: Cached response was sent to client
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'chat_response',
+                        payload: expect.objectContaining({
+                            content: 'This is a cached response from a previous query.',
+                            isComplete: true,
+                        }),
+                    })
+                );
+
+                // Verify: Query classification was NOT performed (short-circuit)
+                expect(mockClassifyQuery).not.toHaveBeenCalled();
+
+                // Verify: RAG was NOT invoked
+                expect(mockRAGRetrieveContext).not.toHaveBeenCalled();
+
+                // Verify: Bedrock was NOT invoked
+                expect(mockBedrockGenerateResponse).not.toHaveBeenCalled();
+
+                // Verify: No new cache entry was created
+                expect(mockCacheSetCachedResponse).not.toHaveBeenCalled();
+
+                // Verify: Audit log was still recorded
+                expect(mockLogUserAction).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        eventType: 'query',
+                        userId: 'user-123',
+                    })
+                );
+            });
+
+            it('should handle cache errors gracefully and proceed with normal flow', async () => {
+                // Setup: Configure cache error
+                mockCacheGetCachedResponse.mockRejectedValue(new Error('Redis connection timeout'));
+
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    yield { text: 'Response without cache', isComplete: false };
+                    yield { text: '', isComplete: true, tokenCount: 5 };
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'test query', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Success response (cache error didn't break the flow)
+                expect(result.statusCode).toBe(200);
+
+                // Verify: Bedrock was invoked (fallback to normal flow)
+                expect(mockBedrockGenerateResponse).toHaveBeenCalled();
+
+                // Verify: Response was still sent
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'chat_response',
+                    })
+                );
+            });
+        });
+
+        describe('Fallback When Vector Store Unavailable', () => {
+            it('should fall back to direct LLM when Vector Store is unavailable (Requirement 14.2)', async () => {
+                // Setup: Configure RAG retrieval with Vector Store error
+                mockClassifyQuery.mockReturnValue({
+                    requiresRetrieval: true,
+                    confidence: 0.95,
+                    reasoning: 'document keyword found',
+                    suggestedK: 5,
+                });
+
+                mockRAGRetrieveContext.mockRejectedValue(new Error('OpenSearch connection refused'));
+
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    yield { text: 'I apologize, but I cannot access ', isComplete: false };
+                    yield { text: 'the document database right now.', isComplete: false };
+                    yield { text: '', isComplete: true, tokenCount: 12 };
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'What is in the technical documentation?', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Success response (fallback worked)
+                expect(result.statusCode).toBe(200);
+
+                // Verify: RAG retrieval was attempted
+                expect(mockRAGRetrieveContext).toHaveBeenCalled();
+
+                // Verify: System message was sent to inform user
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'system',
+                        payload: expect.objectContaining({
+                            message: expect.stringContaining('Document search is temporarily unavailable'),
+                            level: 'warning',
+                        }),
+                    })
+                );
+
+                // Verify: Bedrock was still invoked (without RAG context)
+                expect(mockBedrockGenerateResponse).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        prompt: 'What is in the technical documentation?',
+                    })
+                );
+
+                // Verify: Response was streamed to client
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'chat_response',
+                    })
+                );
+
+                // Verify: Messages were still saved to chat history
+                expect(mockChatHistorySaveMessage).toHaveBeenCalledTimes(2);
+            });
+
+            it('should handle OpenSearch timeout and continue with direct LLM', async () => {
+                // Setup: Configure timeout error
+                mockClassifyQuery.mockReturnValue({
+                    requiresRetrieval: true,
+                    confidence: 0.9,
+                    reasoning: 'document query',
+                    suggestedK: 5,
+                });
+
+                const timeoutError = new Error('Request timeout');
+                timeoutError.name = 'TimeoutError';
+                mockRAGRetrieveContext.mockRejectedValue(timeoutError);
+
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    yield { text: 'Response without documents', isComplete: false };
+                    yield { text: '', isComplete: true, tokenCount: 5 };
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'Find information about X', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Success response
+                expect(result.statusCode).toBe(200);
+
+                // Verify: Warning message was sent
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'system',
+                        payload: expect.objectContaining({
+                            level: 'warning',
+                        }),
+                    })
+                );
+
+                // Verify: Bedrock was invoked
+                expect(mockBedrockGenerateResponse).toHaveBeenCalled();
+            });
+
+            it('should handle RAG initialization failure gracefully', async () => {
+                // Setup: Configure initialization error
+                mockClassifyQuery.mockReturnValue({
+                    requiresRetrieval: true,
+                    confidence: 0.95,
+                    reasoning: 'document keyword',
+                    suggestedK: 5,
+                });
+
+                mockRAGInitialize.mockRejectedValue(new Error('Failed to initialize OpenSearch client'));
+
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    yield { text: 'Fallback response', isComplete: false };
+                    yield { text: '', isComplete: true, tokenCount: 3 };
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'Search documents', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Success response
+                expect(result.statusCode).toBe(200);
+
+                // Verify: System warning was sent
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'system',
+                    })
+                );
+            });
+        });
+
+        describe('Error Handling', () => {
+            it('should handle Bedrock throttling errors with user-friendly message (Requirement 14.1)', async () => {
+                // Setup: Configure Bedrock throttling error
+                const throttlingError = new Error('ThrottlingException: Rate exceeded');
+                throttlingError.name = 'ThrottlingException';
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    throw throttlingError;
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'test message', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Error response
+                expect(result.statusCode).toBe(500);
+
+                // Verify: User-friendly error message was sent
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'error',
+                        payload: expect.objectContaining({
+                            code: 'THROTTLED',
+                            message: expect.stringContaining('high demand'),
+                            retryable: true,
+                        }),
+                    })
+                );
+            });
+
+            it('should handle Bedrock validation errors with appropriate message', async () => {
+                // Setup: Configure validation error
+                const validationError = new Error('ValidationException: Invalid input');
+                validationError.name = 'ValidationException';
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    throw validationError;
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'test message', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+  
+                // Verify: Error response
+                expect(result.statusCode).toBe(500);
+
+                // Verify: Non-retryable error message
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'error',
+                        payload: expect.objectContaining({
+                            code: 'INVALID_REQUEST',
+                            message: expect.stringContaining('rephrasing'),
+                            retryable: false,
+                        }),
+                    })
+                );
+            });
+
+            it('should handle Bedrock timeout errors', async () => {
+                // Setup: Configure timeout error
+                const timeoutError = new Error('ModelTimeoutException: Request timeout');
+                timeoutError.name = 'ModelTimeoutException';
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    throw timeoutError;
+                });
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'very long message...', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Error response
+                expect(result.statusCode).toBe(500);
+
+                // Verify: Timeout error message
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'error',
+                        payload: expect.objectContaining({
+                            code: 'TIMEOUT',
+                            message: expect.stringContaining('too long'),
+                            retryable: true,
+                        }),
+                    })
+                );
+            });
+
+            it('should handle generic Bedrock errors with fallback message', async () => {
+                // Setup: Configure generic error
+                mockBedrockGenerateResponse.mockRejectedValue(new Error('Unknown Bedrock error'));
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'test message', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Error response
+                expect(result.statusCode).toBe(500);
+
+                // Verify: Generic error message
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'error',
+                        payload: expect.objectContaining({
+                            code: 'BEDROCK_ERROR',
+                            message: expect.stringContaining('error occurred'),
+                            retryable: true,
+                        }),
+                    })
+                );
+            });
+
+            it('should handle complete pipeline failure gracefully', async () => {
+                // Setup: Configure multiple failures
+                mockChatHistoryGetHistory.mockRejectedValue(new Error('DynamoDB error'));
+                mockCacheGetCachedResponse.mockRejectedValue(new Error('Redis error'));
+                mockBedrockGenerateResponse.mockRejectedValue(new Error('Bedrock error'));
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'test message', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Error response
+                expect(result.statusCode).toBe(500);
+
+                // Verify: Error message was sent to client
+                expect(mockMessageSenderSendMessage).toHaveBeenCalledWith(
+                    'test-connection-id',
+                    expect.objectContaining({
+                        type: 'error',
+                    })
+                );
+            });
+
+            it('should handle message sender failures during error reporting', async () => {
+                // Setup: Configure Bedrock error and message sender failure
+                mockBedrockGenerateResponse.mockRejectedValue(new Error('Bedrock error'));
+                mockMessageSenderSendMessage.mockRejectedValue(new Error('Failed to send message'));
+
+                // Execute
+                const event = createMockEvent({
+                    action: 'chat_message',
+                    data: { message: 'test message', sessionId: 'session-123' },
+                });
+
+                const result = await handler(event) as HandlerResult;
+
+                // Verify: Error response (should not crash)
+                expect(result.statusCode).toBe(500);
+
+                // Verify: Attempt was made to send error message
+                expect(mockMessageSenderSendMessage).toHaveBeenCalled();
+            });
         });
     });
 });
