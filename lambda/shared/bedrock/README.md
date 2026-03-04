@@ -1,6 +1,6 @@
 # Bedrock Service
 
-AWS Bedrock client wrapper for Claude 3 Sonnet with streaming and non-streaming support.
+AWS Bedrock client wrapper for Claude Haiku 4.5 with streaming and non-streaming support.
 
 ## Features
 
@@ -81,7 +81,7 @@ The `BedrockService` constructor accepts the following configuration options:
 
 ### `generateResponse(request: GenerationRequest): AsyncIterator<ResponseChunk>`
 
-Generate streaming response from Claude 3 Sonnet. Yields response chunks as they arrive.
+Generate streaming response from Claude Haiku 4.5. Yields response chunks as they arrive.
 
 **Parameters:**
 - `request.prompt`: The user's query (required)
@@ -99,7 +99,7 @@ Generate streaming response from Claude 3 Sonnet. Yields response chunks as they
 
 ### `generateResponseSync(request: GenerationRequest): Promise<string>`
 
-Generate non-streaming response from Claude 3 Sonnet. Returns complete response.
+Generate non-streaming response from Claude Haiku 4.5. Returns complete response.
 
 **Parameters:** Same as `generateResponse`
 
@@ -107,7 +107,7 @@ Generate non-streaming response from Claude 3 Sonnet. Returns complete response.
 
 ## Requirements Satisfied
 
-- **Requirement 3.1**: Invokes Claude 3 Sonnet model via Amazon Bedrock API
+- **Requirement 3.1**: Invokes Claude Haiku 4.5 model via Amazon Bedrock API
 - **Requirement 3.2**: Returns responses within 2 seconds for queries without RAG retrieval
 
 ## Model Configuration

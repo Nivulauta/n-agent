@@ -4,7 +4,7 @@
     "description": "Shared utilities for WebSocket handlers",
     "main": "dist/index.mjs",
     "scripts": {
-        "build": "tsc",
+        "build": "node build.mjs",
         "clean": "rm -rf dist"
     },
     "dependencies": {

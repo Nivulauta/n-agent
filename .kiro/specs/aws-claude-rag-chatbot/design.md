@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document specifies the architecture for a production-ready RAG (Retrieval-Augmented Generation) chatbot system built on AWS serverless infrastructure. The system combines Claude 3 Sonnet via Amazon Bedrock with semantic document search to provide accurate, context-aware responses grounded in organizational knowledge.
+This design document specifies the architecture for a production-ready RAG (Retrieval-Augmented Generation) chatbot system built on AWS serverless infrastructure. The system combines Claude Haiku 4.5 via Amazon Bedrock with semantic document search to provide accurate, context-aware responses grounded in organizational knowledge.
 
 The architecture follows a serverless-first approach using AWS Lambda, API Gateway, S3, OpenSearch, and DynamoDB to achieve automatic scaling, high availability, and cost efficiency. The system supports 100 concurrent users with sub-2-second response times while maintaining operational costs under $200/month for moderate usage.
 
@@ -18,7 +18,7 @@ The system processes user queries through a multi-stage pipeline:
 2. Query classification to determine if RAG retrieval is needed
 3. Vector search in OpenSearch to find relevant document chunks (if needed)
 4. Context assembly with conversation history and retrieved documents
-5. Claude 3 Sonnet invocation via Bedrock with streaming response
+5. Claude Haiku 4.5 invocation via Bedrock with streaming response
 6. Real-time response delivery via WebSocket
 7. Persistence of conversation history and audit logs
 
@@ -253,7 +253,7 @@ interface DocumentChunk {
 
 ### 5. Bedrock Service
 
-**Responsibility**: Interface with Claude 3 Sonnet via Amazon Bedrock
+**Responsibility**: Interface with Claude Haiku 4.5 via Amazon Bedrock
 
 **Implementation**: Lambda function with AWS SDK for Bedrock
 
@@ -285,7 +285,7 @@ interface ResponseChunk {
 ```
 
 **Key Design Decisions**:
-- Use Claude 3 Sonnet (anthropic.claude-3-sonnet-20240229-v1:0) for balance of cost and quality
+- Use Claude Haiku 4.5 (global.anthropic.claude-haiku-4-5-20251001-v1:0) via inference profile for optimal cost and performance
 - Implement streaming via Bedrock's InvokeModelWithResponseStream API
 - Set max_tokens=2048, temperature=0.7 for conversational responses
 - Include last 10 messages as conversation context (sliding window)
@@ -905,7 +905,7 @@ Response:
 
 ### Bedrock API Request Format
 
-**Claude 3 Sonnet Request**
+**Claude Haiku 4.5 Request**
 ```json
 {
   "anthropic_version": "bedrock-2023-05-31",
@@ -988,7 +988,7 @@ Response:
 
 ### Property 8: Bedrock API Invocation
 
-*For any* user query received by the system, the Bedrock_Service should invoke the Claude 3 Sonnet model via the Amazon Bedrock API (not any other model or service).
+*For any* user query received by the system, the Bedrock_Service should invoke the Claude Haiku 4.5 model via the Amazon Bedrock API (not any other model or service).
 
 **Validates: Requirements 3.1**
 

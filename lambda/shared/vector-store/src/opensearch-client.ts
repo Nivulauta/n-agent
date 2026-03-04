@@ -150,13 +150,13 @@ export class OpenSearchVectorStore implements VectorStore {
 
             // Build k-NN query
             const knnQuery: any = {
-                field: 'embedding',
-                query_vector: queryVector,
-                k: k
+                embedding: {
+                    vector: queryVector,
+                    k: k
+                }
             };
 
             // Build filter query if filters are provided
-            let filterQuery: any = undefined;
             if (filters) {
                 const mustClauses: any[] = [];
 
@@ -189,12 +189,11 @@ export class OpenSearchVectorStore implements VectorStore {
                 }
 
                 if (mustClauses.length > 0) {
-                    filterQuery = {
+                    knnQuery.embedding.filter = {
                         bool: {
                             must: mustClauses
                         }
                     };
-                    knnQuery.filter = filterQuery;
                 }
             }
 

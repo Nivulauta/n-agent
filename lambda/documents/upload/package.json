@@ -5,7 +5,8 @@
     "main": "index.mjs",
     "scripts": {
         "build": "powershell -Command \"Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue\" & tsc & powershell -ExecutionPolicy Bypass -File ../../shared/fix-imports.ps1 -Path \"dist/shared/audit-logger/src\" & powershell -Command \"Move-Item dist/documents/upload/src/index.js dist/index.mjs -Force; (Get-Content dist/index.mjs) -replace '../../../shared/audit-logger/src/audit-logger.js', './shared/audit-logger/src/audit-logger.mjs' | Set-Content dist/index.mjs\"",
-        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js"
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.490.0",
@@ -16,13 +17,12 @@
     },
     "devDependencies": {
         "@types/aws-lambda": "^8.10.131",
-        "@types/jest": "^30.0.0",
         "@types/node": "^20.10.6",
+        "@vitest/ui": "^2.1.8",
         "aws-sdk-client-mock": "^4.0.0",
         "fast-check": "^4.5.3",
-        "jest": "^30.2.0",
-        "ts-jest": "^29.4.6",
-        "typescript": "^5.3.3"
+        "typescript": "^5.3.3",
+        "vitest": "^2.1.8"
     },
     "type": "module"
 }

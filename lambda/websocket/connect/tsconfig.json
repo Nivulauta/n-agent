@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
+        "target": "ES2022",
+        "module": "ES2022",
         "lib": [
-            "ESNext"
+            "ES2022"
         ],
         "outDir": "./dist",
         "strict": true,
@@ -11,14 +11,14 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
-        "moduleResolution": "bundler"
+        "moduleResolution": "node",
+        "declaration": true
     },
     "include": [
-        "src/index.ts"
+        "src/**/*"
     ],
     "exclude": [
         "node_modules",
-        "dist",
-        "**/*.test.ts"
+        "dist"
     ]
 }

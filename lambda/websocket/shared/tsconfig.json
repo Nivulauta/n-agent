@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
+        "target": "ES2022",
+        "module": "ES2022",
         "lib": [
-            "ESNext"
+            "ES2022"
         ],
         "outDir": "./dist",
         "rootDir": "./src",
@@ -12,7 +12,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
-        "moduleResolution": "bundler",
+        "moduleResolution": "node",
         "declaration": true
     },
     "include": [

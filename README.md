@@ -1,10 +1,10 @@
 # AWS Claude RAG Chatbot
 
-A production-ready, serverless RAG (Retrieval-Augmented Generation) chatbot system built on AWS that combines Claude 3 Sonnet via Amazon Bedrock with semantic document search capabilities. The system provides real-time chat responses grounded in organizational knowledge from PDF documents.
+A production-ready, serverless RAG (Retrieval-Augmented Generation) chatbot system built on AWS that combines Claude Haiku 4.5 via Amazon Bedrock with semantic document search capabilities. The system provides real-time chat responses grounded in organizational knowledge from PDF documents.
 
 ## Overview
 
-This chatbot system enables users to interact with Claude 3 Sonnet while automatically retrieving relevant context from uploaded PDF documents. The architecture is fully serverless, leveraging AWS Lambda, API Gateway, S3, OpenSearch, and DynamoDB to achieve automatic scaling, high availability, and cost efficiency.
+This chatbot system enables users to interact with Claude Haiku 4.5 while automatically retrieving relevant context from uploaded PDF documents. The architecture is fully serverless, leveraging AWS Lambda, API Gateway, S3, OpenSearch, and DynamoDB to achieve automatic scaling, high availability, and cost efficiency.
 
 ### Key Features
 
@@ -57,7 +57,7 @@ This chatbot system enables users to interact with Claude 3 Sonnet while automat
 - **Frontend**: React with TypeScript (planned)
 - **Backend**: AWS Lambda (Node.js 18.x/TypeScript)
 - **API Layer**: AWS API Gateway (REST + WebSocket)
-- **AI/ML**: Amazon Bedrock (Claude 3 Sonnet, Titan Embeddings)
+- **AI/ML**: Amazon Bedrock (Claude Haiku 4.5, Titan Embeddings V2)
 - **Vector Database**: Amazon OpenSearch with k-NN plugin (HNSW algorithm)
 - **Storage**: Amazon S3 with KMS encryption
 - **Database**: Amazon DynamoDB with on-demand pricing
@@ -104,7 +104,7 @@ This chatbot system enables users to interact with Claude 3 Sonnet while automat
 
 ## Current Implementation Status
 
-**Overall Progress: 11 of 26 tasks completed (42%)**
+**Overall Progress: 18 of 26 tasks completed (69%)**
 
 ```
 Infrastructure    ████████████████████ 100% (Task 1)
@@ -117,13 +117,166 @@ Bedrock Service   ████████████████████ 1
 Embeddings        ████████████████████ 100% (Task 8)
 Vector Store      ████████████████████ 100% (Task 9)
 Document Pipeline ████████████████████ 100% (Tasks 10-11)
-RAG System        ░░░░░░░░░░░░░░░░░░░░   0% (Tasks 13-14)
-Chat Handler      ░░░░░░░░░░░░░░░░░░░░   0% (Task 17)
+Document Upload   ████████████████████ 100% (Task 12)
+RAG System        ████████████████████ 100% (Tasks 13-14)
+Chat History      ████████████████████ 100% (Task 15)
+Notifications     ████████████████████ 100% (Task 16)
+Chat Handler      ████████████████████ 100% (Task 17)
 Frontend          ░░░░░░░░░░░░░░░░░░░░   0% (Tasks 21-22)
 Integration       ░░░░░░░░░░░░░░░░░░░░   0% (Task 24)
 ```
 
-### ✅ Completed (Tasks 1-11)
+### ✅ Completed (Tasks 1-17)
+
+#### **Infrastructure Foundation** (Task 1) ✓
+- VPC with private subnets and NAT Gateway
+- S3 buckets with encryption and versioning
+- DynamoDB tables (Sessions, ChatHistory, RateLimits, DocumentMetadata, Connections)
+- OpenSearch cluster with k-NN plugin
+- ElastiCache Redis cluster for caching
+- Security groups and IAM roles
+- CloudWatch log groups with 365-day retention
+
+#### **Authentication Service** (Task 2) ✓
+- Lambda Authorizer with JWT validation and 24-hour expiration
+- Login endpoint with session management
+- Logout endpoint with session revocation
+- Property-based tests for invalid credentials rejection
+- Property-based tests for session expiration
+
+#### **WebSocket Manager** (Task 3) ✓
+- WebSocket API Gateway with $connect, $disconnect, and chat_message routes
+- Connection/disconnection handlers with DynamoDB persistence
+- Message sender utility with error handling for stale connections
+- Support for multiple message types (chat_response, typing_indicator, error, system)
+- Property-based tests for connection persistence and reconnection
+
+#### **Rate Limiter** (Task 4) ✓
+- Sliding window algorithm using DynamoDB atomic counters
+- 60 requests/min for regular users, 300 for admins
+- HTTP 429 responses with Retry-After headers
+- Automatic counter reset with DynamoDB TTL
+- Comprehensive unit tests for rate limiting patterns
+
+#### **Audit Logger** (Task 5) ✓
+- Structured JSON logging utility for CloudWatch
+- Event logging (user actions, API calls, document operations)
+- Separate log groups by event type
+- CloudWatch Logs Insights queries for common scenarios
+- Unit tests for audit logging
+
+#### **Cache Layer with ElastiCache Redis** (Task 6) ✓
+- Redis cluster deployment with Terraform (1GB max memory)
+- Cache utility module with LRU eviction policy
+- Response caching with SHA-256 query hashing (1 hour TTL)
+- Search result caching with embedding hashing (15 minutes TTL)
+- Graceful error handling for cache misses
+- Unit tests for cache operations
+
+#### **Bedrock Service Integration** (Task 7) ✓
+- Claude Haiku 4.5 client wrapper via global inference profile
+- Streaming support via InvokeModelWithResponseStream
+- Non-streaming generateResponseSync for batch operations
+- Model parameters: max_tokens=2048, temperature=0.7 (no top_p for compatibility)
+- Retry logic with exponential backoff (3 attempts: 1s, 2s, 4s delays)
+- Throttling error handling (ThrottlingException)
+- Conversation context management (last 10 messages, sliding window)
+- Property-based tests for API invocation and retry behavior
+- Unit tests for streaming, error handling, and context formatting
+
+#### **Embedding Generator with Bedrock Titan** (Task 8) ✓
+- Titan Embeddings V2 client (amazon.titan-embed-text-v2:0)
+- Single text embedding generation (1024 dimensions)
+- Batch processing with batch size of 25
+- Parallel batch processing using Promise.all
+- Rate limiting with retry logic
+- Progress tracking for large document sets
+- Unit tests for embedding generation and batch processing
+
+#### **Vector Store with OpenSearch** (Task 9) ✓
+- OpenSearch index with k-NN configuration (1024 dimensions, cosine similarity)
+- HNSW parameters: ef_construction=512, m=16, ef_search=512
+- 5-second refresh interval for near-real-time search
+- OpenSearch client wrapper with VPC endpoint
+- Single and bulk embedding indexing
+- k-NN similarity search with configurable k
+- Metadata filtering (documentIds, dateRange, custom metadata)
+- Document deletion (removes all chunks)
+- Comprehensive unit tests (29 tests covering indexing, search, filtering, edge cases)
+
+#### **Document Processor Lambda** (Task 10) ✓
+- PDF text extraction using pdfplumber with complex layout support
+- Table detection and extraction
+- Page-by-page text extraction with metadata
+- Token-based chunking (512 tokens, 50 token overlap) using tiktoken
+- Unique chunk ID generation (documentId#chunk#index)
+- S3 event trigger for automatic processing on upload
+- Outputs: text.json, pages.json, chunks.json
+- Lambda Layer architecture with Docker build for dependencies
+- Comprehensive unit tests (48 tests covering extraction, chunking, error handling)
+- Terraform module with SNS notifications for failures
+
+#### **Document Processing Orchestration** (Task 11) ✓
+- Document Processor → Embedding Generator integration
+  - Asynchronous Lambda invocation after text extraction and chunking
+  - Passes text chunks with full metadata (documentId, filename, pageNumber, uploadedBy, uploadedAt)
+- Embedding Generator → Vector Store integration
+  - Downloads chunks from S3
+  - Generates embeddings using Bedrock Titan (1024 dimensions)
+  - Batch indexes embeddings in OpenSearch with metadata
+  - Updates DocumentMetadata table with completion status (chunkCount, status=completed)
+- End-to-end integration tests
+  - Test suite validates complete pipeline: upload → extract → chunk → embed → index
+  - Verifies document searchability after processing
+  - Tests chunking overlap, concurrent processing, and error handling
+  - 5 comprehensive test cases covering all pipeline stages
+- Complete pipeline flow: PDF Upload → Extract Text → Chunk (512 tokens, 50 overlap) → Generate Embeddings → Index in OpenSearch → Update Metadata → Document Searchable
+
+#### **Document Upload Management** (Task 12) ✓
+- Document upload Lambda with presigned URL generation
+- Document list endpoint with pagination and filtering
+- Document delete endpoint with cascade deletion (S3, OpenSearch, DynamoDB)
+- Comprehensive unit tests with Vitest (58 tests)
+- Integration with document processor pipeline
+
+#### **RAG System & Query Routing** (Tasks 13-14) ✓
+- Query classification using keyword-based classifier
+- RAG system with context retrieval and assembly
+- Dynamic k selection for search results (default: 5)
+- Cache integration for query embeddings and search results
+- Circuit breaker pattern for external service resilience
+- Context assembly with citations and source attribution
+- System prompt generation with/without context
+- Conversation history management with sliding window
+- Token counting and context size management
+- Comprehensive unit tests (35+ tests covering retrieval, caching, circuit breaker)
+
+#### **Chat History Management** (Task 15) ✓
+- Chat history persistence with DynamoDB
+- History retrieval with pagination (default: 50 messages)
+- Session-based history organization
+- KMS encryption for sensitive data
+- Comprehensive unit tests (25 tests covering persistence, retrieval, pagination)
+
+#### **Notification System** (Task 16) ✓
+- SNS topics for system alerts, operational notifications, and failed processing
+- Topic policies for cross-service publishing
+- CloudWatch alarm integration
+- Terraform module for notification infrastructure
+
+#### **Main Chat Handler** (Task 17) ✓
+- WebSocket chat message processing with full pipeline integration
+- Rate limiting enforcement (60 requests/min)
+- RAG retrieval with fallback to direct LLM
+- Streaming response delivery to WebSocket clients
+- Response caching with Redis
+- Chat history persistence after each interaction
+- Circuit breaker for Bedrock and OpenSearch
+- Comprehensive error handling and user feedback
+- Audit logging for all chat interactions
+- Integration tests (58 tests covering end-to-end flow, RAG, caching, error handling)
+
+### 📋 Planned (Tasks 18-26)
 
 #### **Infrastructure Foundation** (Task 1) ✓
 - VPC with private subnets and NAT Gateway
@@ -228,32 +381,7 @@ Integration       ░░░░░░░░░░░░░░░░░░░░  
   - 5 comprehensive test cases covering all pipeline stages
 - Complete pipeline flow: PDF Upload → Extract Text → Chunk (512 tokens, 50 overlap) → Generate Embeddings → Index in OpenSearch → Update Metadata → Document Searchable
 
-### 📋 Planned (Tasks 12-26)
-
-#### **Document Upload Management** (Task 12)
-
-#### **Document Upload Management** (Task 12)
-- Document upload with presigned URLs
-- Document list and delete endpoints
-
-#### **RAG System & Query Routing** (Tasks 13-14)
-- Query classification (RAG vs direct LLM)
-- Context retrieval and assembly
-- Dynamic k selection for search results
-- Cache integration for query embeddings
-
-#### **Chat History & Upload Management** (Task 15, 12)
-- Chat history persistence with encryption
-- History retrieval with pagination
-- Document upload with presigned URLs
-- Document list and delete endpoints
-
-#### **Main Chat Handler** (Task 17)
-- WebSocket chat message processing
-- RAG retrieval integration
-- Streaming response delivery
-- Response caching and persistence
-- Circuit breaker for external services
+### 📋 Planned (Tasks 18-26)
 
 #### **Performance Monitoring** (Task 18)
 - CloudWatch metrics emission
@@ -282,7 +410,7 @@ Integration       ░░░░░░░░░░░░░░░░░░░░  
 - Performance benchmarks
 - Deployment documentation and runbooks
 
-**Progress: 11 of 26 tasks completed (42%)**
+**Progress: 18 of 26 tasks completed (69%)**
 
 See [tasks.md](.kiro/specs/aws-claude-rag-chatbot/tasks.md) for the complete implementation plan with detailed subtasks.
 

@@ -3,6 +3,9 @@ locals {
   lambda_timeout = 30
 }
 
+# Data sources
+data "aws_region" "current" {}
+
 # Archive WebSocket Connect Handler
 data "archive_file" "connect" {
   type        = "zip"
@@ -251,6 +254,23 @@ resource "aws_iam_role_policy" "message_policy" {
       {
         Effect = "Allow"
         Action = [
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem"
+        ]
+        Resource = var.rate_limits_table_arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query"
+        ]
+        Resource = var.chat_history_table_arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "execute-api:ManageConnections"
         ]
         Resource = "${var.websocket_api_execution_arn}/*"
@@ -258,15 +278,49 @@ resource "aws_iam_role_policy" "message_policy" {
       {
         Effect = "Allow"
         Action = [
-          "kms:Decrypt"
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:GenerateDataKey"
         ]
         Resource = var.kms_key_arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream"
+        ]
+        Resource = [
+          "arn:aws:bedrock:*::foundation-model/*",
+          "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/*",
+          "arn:aws:bedrock:*:*:inference-profile/*",
+          "arn:aws:bedrock:${data.aws_region.current.name}:*:inference-profile/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "es:ESHttpGet",
+          "es:ESHttpPost"
+        ]
+        Resource = "${var.opensearch_domain_arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
 
-# WebSocket Message Lambda (placeholder)
+# WebSocket Message Lambda 
 resource "aws_lambda_function" "message" {
   filename         = data.archive_file.message.output_path
   source_code_hash = data.archive_file.message.output_base64sha256
@@ -277,10 +331,21 @@ resource "aws_lambda_function" "message" {
   timeout          = local.lambda_timeout
   memory_size      = 512
 
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [var.lambda_security_group_id]
+  }
+
   environment {
     variables = {
-      CONNECTIONS_TABLE = var.connections_table_name
-      WEBSOCKET_API_ID  = var.websocket_api_id
+      CONNECTIONS_TABLE   = var.connections_table_name
+      WEBSOCKET_API_ID    = var.websocket_api_id
+      RATE_LIMITS_TABLE   = var.rate_limits_table_name
+      CHAT_HISTORY_TABLE  = var.chat_history_table_name
+      KMS_KEY_ID          = var.kms_key_arn
+      OPENSEARCH_ENDPOINT = var.opensearch_endpoint
+      CACHE_HOST          = var.cache_endpoint
+      CACHE_PORT          = tostring(var.cache_port)
     }
   }
 

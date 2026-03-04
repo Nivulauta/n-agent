@@ -409,14 +409,14 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 
 
 - [ ] 17. Implement main chat handler Lambda
-  - [ ] 17.1 Create WebSocket chat message handler
+  - [x] 17.1 Create WebSocket chat message handler
     - Handle chat_message action from WebSocket
     - Extract userId from connection context
     - Apply rate limiting check
     - Log user action to audit log
     - _Requirements: 10.1, 11.1_
   
-  - [ ] 17.2 Implement chat processing pipeline
+  - [x] 17.2 Implement chat processing pipeline
     - Retrieve conversation history from Chat History Store (last 10 messages)
     - Classify query using Query Router
     - If requiresRetrieval=true, invoke RAG System to retrieve context
@@ -424,7 +424,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - If cache miss, assemble prompt with context and history
     - _Requirements: 3.4, 7.5, 12.1, 12.3_
   
-  - [ ] 17.3 Implement streaming response delivery
+  - [x] 17.3 Implement streaming response delivery
     - Send typing_indicator message via WebSocket
     - Invoke Bedrock Service with streaming enabled
     - Stream response chunks to client via WebSocket as they arrive
@@ -432,21 +432,21 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Include retrievedChunks metadata in final message
     - _Requirements: 2.2, 2.5, 3.1, 7.4_
   
-  - [ ] 17.4 Implement response caching and persistence
+  - [x] 17.4 Implement response caching and persistence
     - Cache complete response with 1-hour TTL
     - Save user message to Chat History Store
     - Save assistant response to Chat History Store with metadata
     - Log API call to audit log with token count and latency
     - _Requirements: 8.1, 11.3, 12.1_
   
-  - [ ] 17.5 Implement error handling and fallback
+  - [x] 17.5 Implement error handling and fallback
     - Wrap all operations in try-catch blocks
     - If Vector Store unavailable, fall back to direct LLM without retrieval
     - If Bedrock fails after retries, return user-friendly error via WebSocket
     - Implement circuit breaker for external services (5 failure threshold)
     - _Requirements: 14.1, 14.2, 14.4_
   
-  - [ ]* 17.6 Write integration tests for chat handler
+  - [x] 17.6 Write integration tests for chat handler
     - Test end-to-end chat flow with RAG retrieval
     - Test cache hit scenario
     - Test fallback when Vector Store unavailable

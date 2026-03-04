@@ -3,3 +3,11 @@ dist/
 *.zip
 .env
 *.log
+
+# TypeScript build artifacts in src directories
+**/src/**/*.js
+**/src/**/*.d.ts
+**/src/**/*.js.map
+**/src/**/*.d.ts.map
+!**/src/**/*.test.js
+!**/src/**/*.config.js

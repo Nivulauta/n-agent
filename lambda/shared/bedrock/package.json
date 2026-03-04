@@ -1,7 +1,7 @@
 {
     "name": "bedrock",
     "version": "1.0.0",
-    "description": "AWS Bedrock client wrapper for Claude 3 Sonnet",
+    "description": "AWS Bedrock client wrapper for Claude Haiku 4.5",
     "main": "dist/index.mjs",
     "scripts": {
         "build": "node build.mjs",

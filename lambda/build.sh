@@ -28,9 +28,9 @@ build_lambda() {
     # Build TypeScript (this will output to dist/)
     npm run build
     
-    # Rename .js files to .mjs for ES modules
-    echo "  Renaming .js files to .mjs..."
-    find dist -name "*.js" -type f -exec sh -c 'mv "$1" "${1%.js}.mjs"' _ {} \;
+    # # Rename .js files to .mjs for ES modules
+    # echo "  Renaming .js files to .mjs..."
+    # find dist -name "*.js" -type f -exec sh -c 'mv "$1" "${1%.js}.mjs"' _ {} \;
     
     # Remove existing node_modules and reinstall only production dependencies
     rm -rf node_modules

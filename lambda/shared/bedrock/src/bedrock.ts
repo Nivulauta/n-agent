@@ -1,7 +1,7 @@
 /**
- * Bedrock Service - Claude 3 Sonnet Client Wrapper
+ * Bedrock Service - Claude Haiku 4.5 Client Wrapper
  * 
- * Provides streaming and non-streaming interfaces to Claude 3 Sonnet via Amazon Bedrock.
+ * Provides streaming and non-streaming interfaces to Claude Haiku 4.5 via Amazon Bedrock.
  * Implements requirements 3.1 and 3.2 from the design specification.
  */
 
@@ -18,7 +18,7 @@ import type {
 } from './types.js';
 import { withRetry, withRetryGenerator } from './retry.js';
 
-const DEFAULT_MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0';
+const DEFAULT_MODEL_ID = 'global.anthropic.claude-haiku-4-5-20251001-v1:0';
 const DEFAULT_MAX_TOKENS = 2048;
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_TOP_P = 0.9;
@@ -41,7 +41,7 @@ export class BedrockService {
     }
 
     /**
-     * Generate streaming response from Claude 3 Sonnet
+     * Generate streaming response from Claude Haiku 4.5
      * Yields response chunks as they arrive from Bedrock
      * Implements retry logic with exponential backoff for throttling errors
      */
@@ -100,7 +100,7 @@ export class BedrockService {
     }
 
     /**
-     * Generate non-streaming response from Claude 3 Sonnet
+     * Generate non-streaming response from Claude Haiku 4.5
      * Returns complete response as a single string
      * Implements retry logic with exponential backoff for throttling errors
      */
@@ -136,7 +136,7 @@ export class BedrockService {
     }
 
     /**
-     * Build the request payload for Claude 3 Sonnet
+     * Build the request payload for Claude Haiku 4.5
      * Formats conversation history and system prompt according to Bedrock API spec
      */
     private buildRequestPayload(request: GenerationRequest): Record<string, any> {
@@ -162,9 +162,14 @@ export class BedrockService {
             anthropic_version: 'bedrock-2023-05-31',
             max_tokens: request.maxTokens || this.defaultMaxTokens,
             temperature: request.temperature ?? this.defaultTemperature,
-            top_p: request.topP ?? this.defaultTopP,
             messages,
         };
+
+        // Only add top_p if explicitly provided in request (not using default)
+        // Some models don't support both temperature and top_p
+        if (request.topP !== undefined) {
+            payload.top_p = request.topP;
+        }
 
         // Add system prompt if provided
         if (request.systemPrompt) {

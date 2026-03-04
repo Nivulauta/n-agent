@@ -4,7 +4,8 @@
     "description": "WebSocket connection handler Lambda",
     "main": "dist/index.mjs",
     "scripts": {
-        "build": "powershell -Command \"Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue\" & tsc & powershell -ExecutionPolicy Bypass -File ../../shared/fix-imports.ps1 -Path \"dist/shared/audit-logger/src\" & powershell -Command \"Move-Item dist/websocket/connect/src/index.js dist/index.mjs -Force; (Get-Content dist/index.mjs) -replace '../../../shared/audit-logger/src/audit-logger.js', './shared/audit-logger/src/audit-logger.mjs' | Set-Content dist/index.mjs\"",
+        "build": "node build.mjs",
+        "compile": "tsc",
         "clean": "rm -rf dist",
         "test": "jest"
     },
