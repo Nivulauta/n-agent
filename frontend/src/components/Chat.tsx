@@ -38,14 +38,26 @@ const Chat: React.FC<ChatProps> = ({ token, userId, sessionId, websocketUrl }) =
     const [wsManager, setWsManager] = useState<WebSocketManager | null>(null);
     const currentMessageIdRef = useRef<string | null>(null);
     const currentRAGChunksRef = useRef<any[] | undefined>(undefined);
+    const streamingContentRef = useRef<string>('');
     const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
     const [rateLimitError, setRateLimitError] = useState<number | null>(null);
     const [reconnectInfo, setReconnectInfo] = useState<{ attempt: number; maxAttempts: number; delay: number } | null>(null);
 
     // Initialize WebSocket connection
     useEffect(() => {
+        console.log('WebSocket useEffect triggered');
         console.log('Initializing WebSocket connection to:', websocketUrl);
-        console.log('Using token:', token ? 'Token present' : 'No token');
+        console.log('Token value:', token);
+        console.log('Token length:', token?.length);
+
+        // Verify token is fresh from localStorage
+        const storedToken = localStorage.getItem('chatbot_session_token');
+        if (storedToken) {
+            const parsed = JSON.parse(storedToken);
+            console.log('Token from localStorage:', parsed.token.substring(0, 20) + '...');
+            console.log('Token from prop:', token?.substring(0, 20) + '...');
+            console.log('Tokens match:', parsed.token === token);
+        }
 
         const manager = new WebSocketManager({
             url: websocketUrl,
@@ -112,15 +124,14 @@ const Chat: React.FC<ChatProps> = ({ token, userId, sessionId, websocketUrl }) =
         const { messageId, content, isComplete, retrievedChunks } = message.payload;
 
         // Log the received payload for debugging
-        console.log('Chat response payload:', {
-            messageId,
-            hasContent: !!content,
-            content: content?.substring(0, 100), // Log first 100 chars
-            contentLength: content?.length || 0,
-            isComplete,
-            hasRetrievedChunks: !!retrievedChunks,
-            chunksCount: retrievedChunks?.length || 0
-        });
+        console.log('=== Chat Response Debug ===');
+        console.log('Message ID:', messageId);
+        console.log('Is Complete:', isComplete);
+        console.log('Content from payload:', content ? `"${content.substring(0, 100)}..." (${content.length} chars)` : 'NULL/EMPTY');
+        console.log('Current streaming state:', streamingContent ? `${streamingContent.length} chars` : 'EMPTY');
+        console.log('Current streaming ref:', streamingContentRef.current ? `${streamingContentRef.current.length} chars` : 'EMPTY');
+        console.log('Has RAG chunks:', !!retrievedChunks, retrievedChunks?.length || 0);
+        console.log('========================');
 
         // If we have retrieved chunks but no content, this might be a RAG context message
         if (retrievedChunks && retrievedChunks.length > 0 && !content) {
@@ -140,20 +151,60 @@ const Chat: React.FC<ChatProps> = ({ token, userId, sessionId, websocketUrl }) =
 
         if (isComplete) {
             console.log('Complete message received, adding to messages array');
+            console.log('Current streaming content (state):', streamingContent?.length || 0);
+            console.log('Current streaming content (ref):', streamingContentRef.current?.length || 0);
+            console.log('Content from payload:', content?.substring(0, 50) || '(none)');
+            console.log('Final RAG chunks:', currentRAGChunksRef.current);
+
+            // Use content from payload (backend now sends full content in complete message)
+            // Fall back to accumulated streaming content if payload is empty (for backwards compatibility)
+            const finalContent = content || streamingContentRef.current || streamingContent || '';
+            console.log('Final content length:', finalContent.length);
+            console.log('Final content preview:', finalContent.substring(0, 100));
+
+            // Don't add empty messages
+            if (!finalContent && (!currentRAGChunksRef.current || currentRAGChunksRef.current.length === 0)) {
+                console.warn('Skipping empty complete message');
+                setStreamingContent('');
+                setIsTyping(false);
+                currentMessageIdRef.current = null;
+                currentRAGChunksRef.current = undefined;
+                streamingContentRef.current = '';
+                return;
+            }
+
             // Complete message received - add to messages array
             const completeMessage: ChatMessage = {
                 messageId: messageId || `msg-${Date.now()}`,
                 role: 'assistant',
-                content: content || '',
+                content: finalContent,
                 timestamp: Date.now(),
                 metadata: currentRAGChunksRef.current ? { retrievedChunks: currentRAGChunksRef.current } : undefined
             };
 
-            setMessages(prev => [...prev, completeMessage]);
+            console.log('Complete message object:', {
+                messageId: completeMessage.messageId,
+                contentLength: completeMessage.content.length,
+                hasMetadata: !!completeMessage.metadata,
+                hasRAGChunks: !!completeMessage.metadata?.retrievedChunks
+            });
+
+            // Add message to array
+            setMessages(prev => {
+                console.log('Adding complete message to array, current count:', prev.length);
+                const newMessages = [...prev, completeMessage];
+                console.log('New message count:', newMessages.length);
+                console.log('Last message content length:', newMessages[newMessages.length - 1]?.content?.length || 0);
+                return newMessages;
+            });
+
+            // Clear streaming state immediately (no setTimeout needed since we have the full content)
+            console.log('Clearing streaming state');
             setStreamingContent('');
             setIsTyping(false);
             currentMessageIdRef.current = null;
             currentRAGChunksRef.current = undefined;
+            streamingContentRef.current = '';
         } else {
             // Streaming token - update streaming content
             if (content) {
@@ -161,26 +212,20 @@ const Chat: React.FC<ChatProps> = ({ token, userId, sessionId, websocketUrl }) =
                 console.log('Content preview:', content.substring(0, 100));
                 console.log('Current messageId:', messageId, 'Previous messageId (ref):', currentMessageIdRef.current);
 
-                // Check if this is a new message or continuation of existing one
-                if (messageId && messageId === currentMessageIdRef.current) {
-                    // Same message - accumulate content (backend sending incremental tokens)
-                    console.log('Accumulating content for same message');
-                    setStreamingContent(prev => {
-                        console.log('Previous streaming content length:', prev.length);
-                        console.log('Adding content length:', content.length);
-                        const newContent = prev + content;
-                        console.log('New total content length:', newContent.length);
-                        return newContent;
-                    });
-                } else {
-                    // New message or first chunk - replace content
-                    // OR backend is sending full accumulated content each time
-                    console.log('New message or first chunk - replacing content');
-                    setStreamingContent(content);
-                    // Update ref immediately for next chunk
-                    currentMessageIdRef.current = messageId || null;
+                // Set the message ID on first chunk
+                if (!currentMessageIdRef.current && messageId) {
+                    console.log('Setting initial message ID:', messageId);
+                    currentMessageIdRef.current = messageId;
                 }
 
+                // Backend sends full accumulated content each time, so just replace
+                console.log('Updating streaming content (backend sends full content)');
+                setStreamingContent(content);
+                streamingContentRef.current = content; // Also store in ref
+                setIsTyping(false);
+            } else if (retrievedChunks && retrievedChunks.length > 0) {
+                // Message has RAG chunks but no content - keep showing streaming state
+                console.log('Streaming message with RAG chunks but no content yet');
                 setIsTyping(false);
             } else {
                 console.log('No content in streaming message');

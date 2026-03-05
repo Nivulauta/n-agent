@@ -5,6 +5,8 @@
  */
 
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessage, DocumentChunk } from '../types/api';
 import './Message.css';
 
@@ -67,7 +69,13 @@ const Message: React.FC<MessageProps> = ({ message }) => {
             </div>
 
             <div className="message-content">
-                {message.content}
+                {isUser ? (
+                    message.content
+                ) : (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                    </ReactMarkdown>
+                )}
             </div>
 
             {hasCitations && (

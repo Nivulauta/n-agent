@@ -88,3 +88,9 @@ variable "alert_email" {
   type        = string
   default     = ""
 }
+
+variable "cors_origin" {
+  description = "CORS origin for API responses (e.g., http://localhost:5173 for development, https://app.example.com for production)"
+  type        = string
+  default     = "http://localhost:5173"
+}

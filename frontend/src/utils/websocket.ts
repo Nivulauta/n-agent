@@ -54,8 +54,22 @@ export class WebSocketManager {
         this.intentionallyClosed = false;
         this.onStateChange('connecting');
 
+        // Log token details before encoding
+        console.log('WebSocket connecting with token:');
+        console.log('  Token length:', this.token.length);
+        console.log('  Token first 50 chars:', this.token.substring(0, 50));
+        console.log('  Token last 50 chars:', this.token.substring(this.token.length - 50));
+        console.log('  Token contains dots:', this.token.split('.').length - 1);
+
         // Add token as query parameter for authentication
-        const wsUrl = `${this.url}?token=${encodeURIComponent(this.token)}`;
+        const encodedToken = encodeURIComponent(this.token);
+        console.log('  Encoded token length:', encodedToken.length);
+        console.log('  Encoded token first 50 chars:', encodedToken.substring(0, 50));
+
+        const wsUrl = `${this.url}?token=${encodedToken}`;
+        console.log('  WebSocket URL length:', wsUrl.length);
+        console.log('  WebSocket URL:', wsUrl.substring(0, 100) + '...');
+
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = this.handleOpen.bind(this);
@@ -89,6 +103,26 @@ export class WebSocketManager {
         } else {
             console.error('WebSocket is not connected');
             throw new Error('WebSocket is not connected');
+        }
+    }
+
+    /**
+     * Update the token and reconnect if necessary
+     */
+    updateToken(newToken: string): void {
+        if (this.token === newToken) {
+            console.log('Token unchanged, no reconnection needed');
+            return;
+        }
+
+        console.log('Token updated, reconnecting WebSocket...');
+        this.token = newToken;
+
+        // Disconnect and reconnect with new token
+        if (this.ws) {
+            this.intentionallyClosed = false; // Allow reconnection
+            this.disconnect();
+            this.connect();
         }
     }
 
@@ -154,6 +188,17 @@ export class WebSocketManager {
             wasClean: event.wasClean,
             intentionallyClosed: this.intentionallyClosed
         });
+
+        // Log specific error codes
+        if (event.code === 1006) {
+            console.error('WebSocket closed abnormally (1006) - likely authentication failure (403)');
+            console.error('Check: 1) Token is valid, 2) Token not expired, 3) Session exists in DynamoDB');
+        } else if (event.code === 1008) {
+            console.error('WebSocket policy violation (1008) - authorization denied');
+        } else if (event.code === 1011) {
+            console.error('WebSocket server error (1011)');
+        }
+
         this.clearKeepAlive();
         this.onStateChange('disconnected');
 

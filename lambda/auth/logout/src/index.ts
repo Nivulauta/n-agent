@@ -64,6 +64,15 @@ export const handler = async (
 };
 
 /**
+ * Get CORS origin based on environment
+ */
+function getCorsOrigin(): string {
+    // In production, this should be set via environment variable
+    // For now, allow localhost for development
+    return process.env.CORS_ORIGIN || 'http://localhost:5173';
+}
+
+/**
  * Create API Gateway response
  */
 function createResponse(statusCode: number, body: any): APIGatewayProxyResult {
@@ -71,7 +80,7 @@ function createResponse(statusCode: number, body: any): APIGatewayProxyResult {
         statusCode,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': getCorsOrigin(),
             'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
             'Access-Control-Allow-Methods': 'POST,OPTIONS',
             'Access-Control-Allow-Credentials': 'true',

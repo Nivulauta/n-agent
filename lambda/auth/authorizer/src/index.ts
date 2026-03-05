@@ -69,12 +69,12 @@ export const handler = async (
         // Remove 'Bearer ' prefix if present
         const cleanToken = token.replace(/^Bearer\s+/i, '');
 
-        // Check cache first
-        const cachedEntry = authCache.get(cleanToken);
-        if (cachedEntry && cachedEntry.expiresAt > Date.now()) {
-            console.log('Returning cached authorization decision');
-            return cachedEntry.policy;
-        }
+        // Check cache first (disabled during development to avoid stale policies)
+        // const cachedEntry = authCache.get(cleanToken);
+        // if (cachedEntry && cachedEntry.expiresAt > Date.now()) {
+        //     console.log('Returning cached authorization decision');
+        //     return cachedEntry.policy;
+        // }
 
         // Verify JWT token
         const decoded = jwt.verify(cleanToken, JWT_SECRET) as SessionToken;
@@ -102,11 +102,15 @@ export const handler = async (
         }
 
         // Generate IAM policy
-        // For WebSocket APIs, we need to allow all routes, not just the specific methodArn
+        // For REST API, allow all methods under the API (not just the specific endpoint)
+        // For WebSocket API, allow all routes
         let resourceArn: string;
         if ('methodArn' in event) {
             // TOKEN authorizer (REST API)
-            resourceArn = event.methodArn;
+            // Replace the specific method/path with wildcard to allow all endpoints
+            // Example: arn:aws:execute-api:region:account:api-id/stage/POST/documents/upload
+            // Becomes: arn:aws:execute-api:region:account:api-id/stage/*/*
+            resourceArn = event.methodArn.replace(/\/[A-Z]+\/.*$/, '/*/*');
         } else {
             // REQUEST authorizer (WebSocket API)
             const requestEvent = event as APIGatewayRequestAuthorizerEvent;
@@ -122,14 +126,14 @@ export const handler = async (
             sessionId: decoded.sessionId,
         });
 
-        // Cache the authorization decision
-        authCache.set(cleanToken, {
-            policy,
-            expiresAt: Date.now() + CACHE_TTL_MS,
-        });
+        // Cache the authorization decision (disabled during development)
+        // authCache.set(cleanToken, {
+        //     policy,
+        //     expiresAt: Date.now() + CACHE_TTL_MS,
+        // });
 
         // Clean up expired cache entries periodically
-        cleanupCache();
+        // cleanupCache();
 
         console.log('Authorization successful', { userId: decoded.userId });
         return policy;

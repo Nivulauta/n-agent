@@ -641,7 +641,7 @@ This project follows a spec-driven development approach:
 
 ## License
 
-[Add your license here]
+[LICENSE](LICENSE.md)
 
 ## Support
 

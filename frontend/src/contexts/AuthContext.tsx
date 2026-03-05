@@ -93,7 +93,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
             const response = await axios.post<LoginResponse>(
                 `${API_CONFIG.apiUrl}${API_CONFIG.endpoints.auth.login}`,
-                credentials
+                credentials,
+                {
+                    withCredentials: true,
+                }
             );
 
             const { token, expiresAt, userId, username, roles, sessionId } = response.data;

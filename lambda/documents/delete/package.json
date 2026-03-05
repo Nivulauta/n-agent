@@ -4,7 +4,7 @@
     "description": "Document delete endpoint Lambda function",
     "main": "index.mjs",
     "scripts": {
-        "build": "powershell -Command \"Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue\" & tsc & powershell -ExecutionPolicy Bypass -File ../../shared/fix-imports.ps1 -Path \"dist/shared/audit-logger/src\" & powershell -ExecutionPolicy Bypass -File ../../shared/fix-imports.ps1 -Path \"dist/shared/vector-store/src\" & powershell -Command \"Move-Item dist/documents/delete/src/index.js dist/index.mjs -Force; (Get-Content dist/index.mjs) -replace '../../../shared/audit-logger/src/audit-logger.js', './shared/audit-logger/src/audit-logger.mjs' | Set-Content dist/index.mjs; (Get-Content dist/index.mjs) -replace '../../../shared/vector-store/src/opensearch-client.js', './shared/vector-store/src/opensearch-client.mjs' | Set-Content dist/index.mjs\"",
+        "build": "node build.mjs",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js"
     },
     "dependencies": {

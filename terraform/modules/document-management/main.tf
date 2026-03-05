@@ -107,6 +107,7 @@ resource "aws_lambda_function" "upload" {
     variables = {
       DOCUMENT_METADATA_TABLE = var.document_metadata_table_name
       DOCUMENTS_BUCKET        = var.documents_bucket_name
+      CORS_ORIGIN             = var.cors_origin
     }
   }
 
@@ -200,6 +201,7 @@ resource "aws_lambda_function" "list" {
   environment {
     variables = {
       DOCUMENT_METADATA_TABLE = var.document_metadata_table_name
+      CORS_ORIGIN             = var.cors_origin
     }
   }
 
@@ -321,6 +323,7 @@ resource "aws_lambda_function" "delete" {
       DOCUMENTS_BUCKET        = var.documents_bucket_name
       OPENSEARCH_ENDPOINT     = var.opensearch_endpoint
       OPENSEARCH_INDEX        = var.opensearch_index
+      CORS_ORIGIN             = var.cors_origin
     }
   }
 

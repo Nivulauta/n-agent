@@ -53,3 +53,9 @@ variable "lambda_security_group_id" {
   description = "Security group ID for Lambda functions to access OpenSearch"
   type        = string
 }
+
+variable "cors_origin" {
+  description = "CORS origin for API responses"
+  type        = string
+  default     = "http://localhost:5173"
+}

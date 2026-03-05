@@ -4,7 +4,7 @@
     "description": "Document list endpoint Lambda function",
     "main": "index.mjs",
     "scripts": {
-        "build": "powershell -Command \"Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue\" & tsc & powershell -Command \"Move-Item dist/documents/list/src/index.js dist/index.mjs -Force\"",
+        "build": "node build.mjs",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js"
     },
     "dependencies": {

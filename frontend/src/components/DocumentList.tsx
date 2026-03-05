@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import type { Document, DocumentListResponse, DeleteDocumentResponse } from '../types';
 import API_CONFIG from '../config/api';
+import { getToken } from '../utils/auth';
 import ErrorMessage from './ErrorMessage';
 import './DocumentList.css';
 
@@ -33,8 +34,8 @@ export default function DocumentList({
         setError(null);
 
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
+            const sessionToken = getToken();
+            if (!sessionToken) {
                 throw new Error('Not authenticated');
             }
 
@@ -42,8 +43,9 @@ export default function DocumentList({
                 `${API_CONFIG.apiUrl}${API_CONFIG.endpoints.documents.list}`,
                 {
                     headers: {
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `Bearer ${sessionToken.token}`,
                     },
+                    credentials: 'include',
                 }
             );
 
@@ -79,8 +81,8 @@ export default function DocumentList({
         setConfirmDeleteId(null);
 
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
+            const sessionToken = getToken();
+            if (!sessionToken) {
                 throw new Error('Not authenticated');
             }
 
@@ -89,8 +91,9 @@ export default function DocumentList({
                 {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `Bearer ${sessionToken.token}`,
                     },
+                    credentials: 'include',
                 }
             );
 

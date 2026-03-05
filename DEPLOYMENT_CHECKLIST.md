@@ -1,151 +1,194 @@
-# Deployment Checklist - Claude Haiku 4.5 Updates
+# Deployment Checklist - Chat Streaming & Authorizer Fixes
 
-## Summary of Changes
+Use this checklist to deploy and verify the fixes.
 
-The following code changes have been made to fix Bedrock model configuration and related issues:
+## Pre-Deployment
 
-1. **Bedrock Service** (`lambda/shared/bedrock/src/bedrock.ts`)
-   - Updated to use Claude Haiku 4.5 inference profile: `global.anthropic.claude-haiku-4-5-20251001-v1:0`
-   - Fixed parameter conflict: removed `top_p` default, only use `temperature` (0.7)
-   - Only include `top_p` if explicitly provided in request
+- [ ] Review changes in `FIXES_SUMMARY.md`
+- [ ] Ensure you're in the project root directory
+- [ ] Verify AWS credentials are configured
+- [ ] Check that Terraform is initialized (`cd terraform && terraform init`)
 
-2. **WebSocket Message Handler** (`lambda/websocket/message/src/index.ts`)
-   - Removed `topP: 0.9` from Bedrock call (only using `temperature: 0.7`)
-   - Added empty message filtering in conversation history (multiple places)
-   - Added validation to ensure finalPrompt is never empty
+## Deployment
 
-3. **OpenSearch Client** (`lambda/shared/vector-store/src/opensearch-client.ts`)
-   - Fixed k-NN query structure to use correct format: `{ query: { knn: { embedding: { vector: [...], k: N } } } }`
-   - Validates query vector is 1024 dimensions
+### Option A: Automated (Recommended)
+- [ ] Run `.\FIX-CHAT-STREAMING.ps1`
+- [ ] Wait for build to complete
+- [ ] Wait for Terraform apply to complete
+- [ ] Note any errors or warnings
 
-4. **IAM Permissions** (`terraform/modules/websocket-handlers/main.tf`)
-   - Already includes inference profile permissions: `arn:aws:bedrock:*:*:inference-profile/*`
+### Option B: Manual
+- [ ] Navigate to `lambda/websocket/message`
+- [ ] Run `npm install`
+- [ ] Run `npm run build`
+- [ ] Verify `dist/index.mjs` exists
+- [ ] Navigate to `terraform`
+- [ ] Run `terraform apply`
+- [ ] Type `yes` to confirm
+- [ ] Wait for deployment to complete
 
-5. **Documentation Updates**
-   - Updated README.md with Claude Haiku 4.5 references
-   - Updated design.md with Claude Haiku 4.5 references
-   - Updated bedrock module README and package.json
+## Post-Deployment Verification
 
-## Deployment Steps
+### 1. Infrastructure Check
+- [ ] Navigate to `terraform` directory
+- [ ] Run `terraform show | grep authorizer_result_ttl`
+- [ ] Verify output shows `authorizer_result_ttl_in_seconds = 0`
+- [ ] Run `terraform show | grep websocket-message`
+- [ ] Verify Lambda function was updated
 
-### Step 1: Rebuild Lambda Functions
+### 2. Lambda Function Check
+- [ ] Open AWS Console → Lambda
+- [ ] Find `dev-websocket-message` function
+- [ ] Check "Last modified" timestamp (should be recent)
+- [ ] Click "Test" tab (optional)
+- [ ] Verify function code is updated
 
-```bash
-# Rebuild shared bedrock module
-cd lambda/shared/bedrock
-npm run build
+### 3. Frontend Preparation
+- [ ] Open browser
+- [ ] Press Ctrl+Shift+Delete
+- [ ] Select "All time" or "Everything"
+- [ ] Check "Cookies" and "Cached images and files"
+- [ ] Click "Clear data"
+- [ ] Close and reopen browser
 
-# Rebuild websocket message Lambda
-cd ../../websocket/message
-node build.mjs
+### 4. Application Test
+- [ ] Navigate to frontend URL (http://localhost:5173)
+- [ ] Open browser DevTools (F12)
+- [ ] Go to Console tab
+- [ ] Log in to the application
+- [ ] Send a test chat message (e.g., "Hello, how are you?")
+- [ ] Watch the console logs
 
-# Return to root
-cd ../../..
+### 5. Verify Chat Streaming
+- [ ] Streaming chunks appear during generation ✓
+- [ ] Message content is visible while streaming ✓
+- [ ] Message content persists after completion ✓
+- [ ] No "NULL/EMPTY" in console logs ✓
+- [ ] Console shows: "Content from payload: ..." with actual content ✓
+
+### 6. Verify Console Logs
+Look for this pattern in browser console:
+```
+=== Chat Response Debug ===
+Message ID: msg-[timestamp]
+Is Complete: true
+Content from payload: "[actual content]..." ([number] chars)
+Current streaming state: [number] chars
+Current streaming ref: [number] chars
+Has RAG chunks: [true/false] [number]
+========================
 ```
 
-### Step 2: Deploy via Terraform
+- [ ] "Content from payload" shows actual content (NOT "NULL/EMPTY")
+- [ ] Content length is greater than 0
+- [ ] No errors in console
 
-```bash
-cd terraform
-terraform apply
-```
+### 7. Verify Authorization
+- [ ] Upload a document (tests authorization)
+- [ ] List documents (tests authorization)
+- [ ] Delete a document (tests authorization)
+- [ ] No "User is not authorized" errors ✓
+- [ ] No CORS errors ✓
 
-Review the changes and type `yes` to confirm deployment.
+### 8. CloudWatch Logs Check (Optional)
+- [ ] Open AWS Console → CloudWatch → Log Groups
+- [ ] Find `/aws/lambda/dev-websocket-message`
+- [ ] Check recent log streams
+- [ ] Look for "Streaming complete. Total tokens: X, Response length: Y"
+- [ ] Verify Y (response length) is greater than 0
+- [ ] No errors in logs
 
-### Step 3: Configure OpenSearch Access
+## Troubleshooting
 
-The websocket message Lambda role needs to be mapped to OpenSearch for search permissions.
+### Issue: Chat messages still disappearing
+- [ ] Check browser console for "Content from payload: NULL/EMPTY"
+- [ ] Verify Lambda was rebuilt: `ls lambda/websocket/message/dist/index.mjs`
+- [ ] Check file modification time: `ls -la lambda/websocket/message/dist/`
+- [ ] Redeploy: `cd terraform && terraform apply -auto-approve`
+- [ ] Clear browser cache again
 
-**Option A: Manual Invocation (Quick)**
+### Issue: Authorization errors
+- [ ] Check authorizer TTL: `cd terraform && terraform show | grep authorizer_result_ttl`
+- [ ] Should be `0`, not `300`
+- [ ] If not, run `terraform apply` again
+- [ ] Log out and log back in
+- [ ] Clear browser cookies
 
-```bash
-aws lambda invoke \
-  --function-name dev-opensearch-configure-access \
-  --payload '{"lambdaRoleArn":"arn:aws:iam::177981160483:role/dev-websocket-message-role"}' \
-  response.json
+### Issue: CORS errors
+- [ ] Check preflight response headers in Network tab
+- [ ] Verify `Access-Control-Allow-Origin` is NOT `*`
+- [ ] Verify `Access-Control-Allow-Credentials: true` is present
+- [ ] Run `.\check-cors-status.ps1` to verify all endpoints
 
-cat response.json
-```
+### Issue: Build errors
+- [ ] Check Node.js version: `node --version` (should be 18+)
+- [ ] Check npm version: `npm --version`
+- [ ] Clear node_modules: `rm -rf lambda/websocket/message/node_modules`
+- [ ] Reinstall: `cd lambda/websocket/message && npm install`
+- [ ] Rebuild: `npm run build`
 
-**Option B: Terraform Automation (Recommended for Production)**
+### Issue: Terraform errors
+- [ ] Check AWS credentials: `aws sts get-caller-identity`
+- [ ] Check Terraform state: `cd terraform && terraform state list`
+- [ ] Refresh state: `terraform refresh`
+- [ ] Try again: `terraform apply`
 
-Add to `terraform/modules/opensearch-access-config/main.tf`:
+## Success Criteria
 
-```hcl
-# Automatically configure access for websocket message Lambda
-resource "null_resource" "configure_websocket_access" {
-  depends_on = [aws_lambda_function.configure_access]
+All of the following must be true:
 
-  triggers = {
-    lambda_role_arn = var.websocket_message_role_arn
-  }
+- [x] Deployment completed without errors
+- [x] Lambda function shows recent "Last modified" timestamp
+- [x] Authorizer cache TTL is 0
+- [x] Browser cache cleared
+- [x] Chat messages persist after streaming completes
+- [x] Console logs show actual content (not NULL/EMPTY)
+- [x] No authorization errors
+- [x] No CORS errors
+- [x] Document upload/list/delete works
 
-  provisioner "local-exec" {
-    command = <<-EOT
-      aws lambda invoke \
-        --function-name ${aws_lambda_function.configure_access.function_name} \
-        --payload '{"lambdaRoleArn":"${var.websocket_message_role_arn}"}' \
-        response.json
-    EOT
-  }
-}
-```
+## Rollback (If Needed)
 
-### Step 4: Test the Deployment
+If something goes wrong and you need to rollback:
 
-1. Connect to WebSocket API
-2. Send a test message
-3. Verify:
-   - No "model identifier is invalid" errors
-   - No "temperature and top_p cannot both be specified" errors
-   - No "expecting START_ARRAY but got VALUE_STRING" errors
-   - No "no permissions for [indices:data/read/search]" errors
-   - No "messages.X.content: Field required" errors
-   - Response streams correctly from Claude Haiku 4.5
+1. **Revert code changes**:
+   ```bash
+   git checkout HEAD~1 lambda/websocket/message/src/index.ts
+   git checkout HEAD~1 terraform/modules/rest-api/main.tf
+   git checkout HEAD~1 frontend/src/components/Chat.tsx
+   ```
 
-### Step 5: Monitor CloudWatch Logs
+2. **Rebuild and redeploy**:
+   ```bash
+   cd lambda/websocket/message
+   npm run build
+   cd ../../..
+   cd terraform
+   terraform apply -auto-approve
+   ```
 
-```bash
-# Watch websocket message Lambda logs
-aws logs tail /aws/lambda/dev-websocket-message --follow
+3. **Clear browser cache again**
 
-# Watch for any errors
-aws logs filter-pattern /aws/lambda/dev-websocket-message --filter-pattern "ERROR"
-```
+## Next Steps
 
-## Expected Behavior After Deployment
+After successful deployment:
 
-- Model: Claude Haiku 4.5 via global inference profile
-- Parameters: Only `temperature: 0.7` (no `top_p`)
-- OpenSearch: k-NN queries work correctly with proper structure
-- Permissions: Websocket Lambda can search OpenSearch
-- Messages: Empty messages filtered out before sending to Claude
-- Streaming: Response chunks delivered in real-time via WebSocket
+- [ ] Test with different types of messages
+- [ ] Test with RAG-enabled queries (upload documents first)
+- [ ] Test with multiple concurrent users (if applicable)
+- [ ] Monitor CloudWatch logs for any errors
+- [ ] Consider re-enabling authorizer cache for production (with shorter TTL)
 
-## Rollback Plan
+## Documentation
 
-If issues occur:
+For more information, see:
+- `QUICK_FIX_GUIDE.md` - Quick reference
+- `CHAT_STREAMING_FIX.md` - Detailed technical documentation
+- `FIXES_SUMMARY.md` - Complete summary of all fixes
 
-```bash
-cd terraform
-terraform apply -target=module.websocket_handlers.aws_lambda_function.message
-```
+## Notes
 
-Or revert code changes and redeploy.
-
-## Known Issues Resolved
-
-1. ✅ Invalid model ID errors
-2. ✅ Temperature/top_p parameter conflict
-3. ✅ OpenSearch k-NN query structure
-4. ✅ IAM permissions for inference profiles
-5. ✅ Empty message validation errors
-6. ⏳ OpenSearch access mapping (needs Step 3)
-
-## Next Steps After Deployment
-
-1. Test with various query types (simple, RAG-requiring)
-2. Verify conversation history works correctly
-3. Test document upload and embedding generation
-4. Monitor costs and performance metrics
-5. Set up CloudWatch alarms for errors
+- Authorizer cache is disabled for development to avoid stale policies
+- For production, consider setting `authorizer_result_ttl_in_seconds = 60` (1 minute)
+- Frontend maintains backwards compatibility with old backend behavior
+- All changes are backwards compatible and can be rolled back if needed

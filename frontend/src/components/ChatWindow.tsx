@@ -5,6 +5,8 @@
  */
 
 import React, { useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessage, DocumentChunk } from '../types/api';
 import Message from './Message';
 import TypingIndicator from './TypingIndicator';
@@ -39,16 +41,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, streamingContent, isTyping]);
-
-    // Debug: Log render state
-    console.log('ChatWindow render state:', {
-        hasStreamingContent: !!streamingContent,
-        streamingLength: streamingContent?.length,
-        hasStreamingRAGChunks: !!streamingRAGChunks,
-        ragChunksCount: streamingRAGChunks?.length,
-        isTyping,
-        messageCount: messages.length
-    });
 
     const renderStreamingCitations = (chunks: DocumentChunk[]) => {
         return (
@@ -91,7 +83,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 {streamingContent && (
                     <div className="message assistant streaming">
                         <div className="message-content">
-                            {streamingContent}
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {streamingContent}
+                            </ReactMarkdown>
                         </div>
                         {/* Show RAG chunks with streaming content */}
                         {streamingRAGChunks && streamingRAGChunks.length > 0 && (

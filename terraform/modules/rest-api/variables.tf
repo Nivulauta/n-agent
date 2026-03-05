@@ -96,3 +96,14 @@ variable "waf_ip_blocklist" {
   type        = list(string)
   default     = []
 }
+
+variable "cors_origin" {
+  description = "CORS origin for API responses"
+  type        = string
+  default     = "http://localhost:5173"
+}
+
+variable "authorizer_function_name" {
+  description = "Name of the Lambda Authorizer function"
+  type        = string
+}

@@ -178,7 +178,7 @@ resource "aws_api_gateway_authorizer" "lambda" {
   authorizer_credentials           = aws_iam_role.api_gateway_authorizer.arn
   type                             = "TOKEN"
   identity_source                  = "method.request.header.Authorization"
-  authorizer_result_ttl_in_seconds = 300
+  authorizer_result_ttl_in_seconds = 0 # Disable cache during development to avoid stale policies
 }
 
 # IAM Role for API Gateway to invoke Lambda Authorizer
@@ -328,9 +328,10 @@ resource "aws_api_gateway_method_response" "login_options" {
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
   }
 }
 
@@ -341,9 +342,10 @@ resource "aws_api_gateway_integration_response" "login_options" {
   status_code = aws_api_gateway_method_response.login_options.status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
   }
 }
 
@@ -373,9 +375,10 @@ resource "aws_api_gateway_method_response" "logout_options" {
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
   }
 }
 
@@ -386,15 +389,28 @@ resource "aws_api_gateway_integration_response" "logout_options" {
   status_code = aws_api_gateway_method_response.logout_options.status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
   }
 }
 
 # API Gateway Deployment
 resource "aws_api_gateway_deployment" "chatbot" {
   rest_api_id = aws_api_gateway_rest_api.chatbot.id
+
+  # Force new deployment when integration responses change
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_integration_response.login_options.id,
+      aws_api_gateway_integration_response.logout_options.id,
+      aws_api_gateway_integration_response.documents_options.id,
+      aws_api_gateway_integration_response.documents_upload_options.id,
+      aws_api_gateway_integration_response.documents_id_options.id,
+      aws_api_gateway_integration_response.chat_history_options.id,
+    ]))
+  }
 
   depends_on = [
     aws_api_gateway_integration.login,
@@ -827,9 +843,10 @@ resource "aws_api_gateway_method_response" "documents_options" {
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
   }
 }
 
@@ -840,9 +857,10 @@ resource "aws_api_gateway_integration_response" "documents_options" {
   status_code = aws_api_gateway_method_response.documents_options.status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,OPTIONS'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'GET,POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
   }
 }
 
@@ -872,9 +890,10 @@ resource "aws_api_gateway_method_response" "documents_upload_options" {
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
   }
 }
 
@@ -885,9 +904,10 @@ resource "aws_api_gateway_integration_response" "documents_upload_options" {
   status_code = aws_api_gateway_method_response.documents_upload_options.status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
   }
 }
 
@@ -957,9 +977,10 @@ resource "aws_api_gateway_method_response" "documents_id_options" {
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
   }
 }
 
@@ -970,9 +991,10 @@ resource "aws_api_gateway_integration_response" "documents_id_options" {
   status_code = aws_api_gateway_method_response.documents_id_options.status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,OPTIONS'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
   }
 }
 
@@ -1051,9 +1073,10 @@ resource "aws_api_gateway_method_response" "chat_history_options" {
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = true
-    "method.response.header.Access-Control-Allow-Methods" = true
-    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
   }
 }
 
@@ -1064,8 +1087,9 @@ resource "aws_api_gateway_integration_response" "chat_history_options" {
   status_code = aws_api_gateway_method_response.chat_history_options.status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
   }
 }

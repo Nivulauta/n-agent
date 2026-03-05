@@ -133,6 +133,7 @@ module "auth" {
   users_table_arn     = module.database.users_table_arn
   jwt_secret          = local.jwt_secret
   kms_key_arn         = module.security.kms_key_arn
+  cors_origin         = var.cors_origin
 }
 
 module "websocket_handlers" {
@@ -177,6 +178,7 @@ module "rest_api" {
   environment                   = var.environment
   authorizer_function_arn       = module.auth.authorizer_function_arn
   authorizer_invoke_arn         = module.auth.authorizer_invoke_arn
+  authorizer_function_name      = module.auth.authorizer_function_name
   login_function_name           = module.auth.login_function_name
   login_invoke_arn              = module.auth.login_invoke_arn
   logout_function_name          = module.auth.logout_function_name
@@ -189,6 +191,7 @@ module "rest_api" {
   document_delete_invoke_arn    = module.document_management.delete_invoke_arn
   chat_history_function_name    = module.chat_history.lambda_function_name
   chat_history_invoke_arn       = module.chat_history.lambda_invoke_arn
+  cors_origin                   = var.cors_origin
 }
 
 module "opensearch_access_config" {
@@ -242,6 +245,7 @@ module "document_management" {
   opensearch_domain_arn        = module.opensearch.domain_arn
   private_subnet_ids           = module.networking.private_subnet_ids
   lambda_security_group_id     = module.security.lambda_security_group_id
+  cors_origin                  = var.cors_origin
 }
 
 module "chat_history" {

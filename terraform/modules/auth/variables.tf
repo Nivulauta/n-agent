@@ -33,3 +33,9 @@ variable "kms_key_arn" {
   description = "ARN of the KMS key for encryption/decryption"
   type        = string
 }
+
+variable "cors_origin" {
+  description = "CORS origin for API responses"
+  type        = string
+  default     = "http://localhost:5173"
+}

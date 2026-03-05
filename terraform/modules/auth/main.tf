@@ -195,6 +195,7 @@ resource "aws_lambda_function" "login" {
       SESSIONS_TABLE = var.sessions_table_name
       USERS_TABLE    = var.users_table_name
       JWT_SECRET     = var.jwt_secret
+      CORS_ORIGIN    = var.cors_origin
     }
   }
 
@@ -285,6 +286,7 @@ resource "aws_lambda_function" "logout" {
   environment {
     variables = {
       SESSIONS_TABLE = var.sessions_table_name
+      CORS_ORIGIN    = var.cors_origin
     }
   }
 

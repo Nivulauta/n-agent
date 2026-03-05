@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Auth Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .info {
+            color: blue;
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Authentication Debug</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            output.appendChild(div);
+        }
+
+        function logObject(label, obj) {
+            const div = document.createElement('div');
+            div.innerHTML = `<strong>${label}:</strong><pre>${JSON.stringify(obj, null, 2)}</pre>`;
+            output.appendChild(div);
+        }
+
+        // Check localStorage
+        log('Checking localStorage...', 'info');
+        const tokenData = localStorage.getItem('chatbot_session_token');
+
+        if (!tokenData) {
+            log('❌ No token found in localStorage', 'error');
+            log('You need to login first', 'info');
+        } else {
+            log('✓ Token found in localStorage', 'success');
+
+            try {
+                const parsed = JSON.parse(tokenData);
+                logObject('Token Data', parsed);
+
+                // Check expiration
+                const now = Date.now();
+                const expiresAt = parsed.expiresAt;
+
+                if (expiresAt < now) {
+                    log('❌ Token is EXPIRED', 'error');
+                    log(`Expired at: ${new Date(expiresAt).toLocaleString()}`, 'error');
+                    log(`Current time: ${new Date(now).toLocaleString()}`, 'info');
+                } else {
+                    log('✓ Token is VALID', 'success');
+                    const remainingMs = expiresAt - now;
+                    const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+                    const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                    log(`Expires in: ${remainingHours}h ${remainingMinutes}m`, 'success');
+                }
+
+                // Check token format
+                if (parsed.token && parsed.token.length > 0) {
+                    log(`✓ Token length: ${parsed.token.length} characters`, 'success');
+                    log(`Token preview: ${parsed.token.substring(0, 50)}...`, 'info');
+                } else {
+                    log('❌ Token is empty or invalid', 'error');
+                }
+
+                // Check userId
+                if (parsed.userId) {
+                    log(`✓ User ID: ${parsed.userId}`, 'success');
+                } else {
+                    log('❌ No userId in token', 'error');
+                }
+
+            } catch (e) {
+                log('❌ Failed to parse token JSON', 'error');
+                log(`Error: ${e.message}`, 'error');
+            }
+        }
+
+        // Check user context
+        log('\nChecking user context...', 'info');
+        const userContext = localStorage.getItem('chatbot_user_context');
+
+        if (!userContext) {
+            log('❌ No user context found', 'error');
+        } else {
+            log('✓ User context found', 'success');
+            try {
+                const parsed = JSON.parse(userContext);
+                logObject('User Context', parsed);
+            } catch (e) {
+                log('❌ Failed to parse user context JSON', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

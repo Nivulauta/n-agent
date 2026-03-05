@@ -549,7 +549,7 @@ async function processChatMessage(
                     if (chunk.isComplete) {
                         tokenCount = chunk.tokenCount || 0;
 
-                        // Send final message with retrievedChunks metadata
+                        // Send final message with full accumulated content and retrievedChunks metadata
                         const retrievedChunksMetadata = retrievedChunks.length > 0
                             ? retrievedChunks.map(chunk => ({
                                 documentName: chunk.documentName,
@@ -562,7 +562,7 @@ async function processChatMessage(
                             connectionId,
                             MessageSender.createChatResponse(
                                 messageId,
-                                '',
+                                fullResponse,  // Send full accumulated content, not empty string
                                 true,
                                 retrievedChunksMetadata
                             )

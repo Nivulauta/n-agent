@@ -10,6 +10,7 @@ import { useState, useRef } from 'react';
 import type { ChangeEvent } from 'react';
 import type { UploadRequest, UploadURL } from '../types';
 import API_CONFIG from '../config/api';
+import { getToken } from '../utils/auth';
 import ErrorMessage from './ErrorMessage';
 import './DocumentUpload.css';
 
@@ -62,8 +63,8 @@ export default function DocumentUpload({ onUploadComplete, onUploadError }: Docu
 
         try {
             // Step 1: Get presigned URL from backend
-            const token = localStorage.getItem('token');
-            if (!token) {
+            const sessionToken = getToken();
+            if (!sessionToken) {
                 throw new Error('Not authenticated');
             }
 
@@ -79,8 +80,9 @@ export default function DocumentUpload({ onUploadComplete, onUploadError }: Docu
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `Bearer ${sessionToken.token}`,
                     },
+                    credentials: 'include',
                     body: JSON.stringify(uploadRequest),
                 }
             );
