@@ -6,11 +6,13 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { WebSocketManager } from '../utils/websocket';
 import type { WebSocketConnectionState } from '../utils/websocket';
 import { parseError } from '../utils/errorHandler';
 import type {
     ChatMessage,
+    DocumentChunk,
     WebSocketMessage,
     ChatResponseMessage,
     TypingIndicatorMessage,
@@ -32,16 +34,25 @@ interface ChatProps {
 
 const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocketUrl }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [messageRAGChunks, setMessageRAGChunks] = useState<Record<string, DocumentChunk[]>>({});
     const [isTyping, setIsTyping] = useState(false);
-    const [streamingContent, setStreamingContent] = useState('');
     const [connectionState, setConnectionState] = useState<WebSocketConnectionState>('disconnected');
     const [wsManager, setWsManager] = useState<WebSocketManager | null>(null);
     const currentMessageIdRef = useRef<string | null>(null);
     const currentRAGChunksRef = useRef<any[] | undefined>(undefined);
-    const streamingContentRef = useRef<string>('');
+    const streamingMessageIndexRef = useRef<number | null>(null);
     const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
     const [rateLimitError, setRateLimitError] = useState<number | null>(null);
     const [reconnectInfo, setReconnectInfo] = useState<{ attempt: number; maxAttempts: number; delay: number } | null>(null);
+
+    // Debug: Monitor messageRAGChunks state changes
+    useEffect(() => {
+        console.log('=== messageRAGChunks STATE CHANGED ===');
+        console.log('New state:', messageRAGChunks);
+        console.log('Keys:', Object.keys(messageRAGChunks));
+        console.log('Values:', Object.values(messageRAGChunks));
+        console.log('====================================');
+    }, [messageRAGChunks]);
 
     // Initialize WebSocket connection
     useEffect(() => {
@@ -67,17 +78,30 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
                 console.log('WebSocket state changed to:', state);
                 setConnectionState(state);
 
-                // Show error if connection fails
+                // Clear error when connection succeeds
+                if (state === 'connected') {
+                    setError(null);
+                    setReconnectInfo(null);
+                }
+
+                // Don't show error on initial connection failure - let auto-retry handle it
+                // Only show error if we're in error state and have exhausted retries
                 if (state === 'error') {
-                    setError({
-                        message: 'Failed to connect to chat server. The WebSocket API may not be deployed yet.',
-                        retryable: true
-                    });
+                    // Error will be shown via reconnectInfo if retries are exhausted
+                    console.log('WebSocket error state - auto-retry will attempt reconnection');
                 }
             },
             onReconnectAttempt: (attempt, maxAttempts, delay) => {
                 console.log(`Reconnection attempt ${attempt}/${maxAttempts}, delay: ${delay}ms`);
                 setReconnectInfo({ attempt, maxAttempts, delay });
+
+                // Only show error if we've exhausted all retry attempts
+                if (attempt >= maxAttempts) {
+                    setError({
+                        message: 'Failed to connect to chat server after multiple attempts. Please check your connection and try again.',
+                        retryable: true
+                    });
+                }
             }
         });
 
@@ -128,8 +152,6 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
         console.log('Message ID:', messageId);
         console.log('Is Complete:', isComplete);
         console.log('Content from payload:', content ? `"${content.substring(0, 100)}..." (${content.length} chars)` : 'NULL/EMPTY');
-        console.log('Current streaming state:', streamingContent ? `${streamingContent.length} chars` : 'EMPTY');
-        console.log('Current streaming ref:', streamingContentRef.current ? `${streamingContentRef.current.length} chars` : 'EMPTY');
         console.log('Has RAG chunks:', !!retrievedChunks, retrievedChunks?.length || 0);
         console.log('========================');
 
@@ -149,87 +171,179 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
             currentRAGChunksRef.current = retrievedChunks;
         }
 
-        if (isComplete) {
-            console.log('Complete message received, adding to messages array');
-            console.log('Current streaming content (state):', streamingContent?.length || 0);
-            console.log('Current streaming content (ref):', streamingContentRef.current?.length || 0);
-            console.log('Content from payload:', content?.substring(0, 50) || '(none)');
-            console.log('Final RAG chunks:', currentRAGChunksRef.current);
+        // First streaming chunk - add message to array immediately
+        if (!currentMessageIdRef.current && messageId && content) {
+            console.log('First streaming chunk - adding message to array');
+            console.log('RAG chunks at first chunk:', currentRAGChunksRef.current);
+            currentMessageIdRef.current = messageId;
 
-            // Use content from payload (backend now sends full content in complete message)
-            // Fall back to accumulated streaming content if payload is empty (for backwards compatibility)
-            const finalContent = content || streamingContentRef.current || streamingContent || '';
-            console.log('Final content length:', finalContent.length);
-            console.log('Final content preview:', finalContent.substring(0, 100));
-
-            // Don't add empty messages
-            if (!finalContent && (!currentRAGChunksRef.current || currentRAGChunksRef.current.length === 0)) {
-                console.warn('Skipping empty complete message');
-                setStreamingContent('');
-                setIsTyping(false);
-                currentMessageIdRef.current = null;
-                currentRAGChunksRef.current = undefined;
-                streamingContentRef.current = '';
-                return;
-            }
-
-            // Complete message received - add to messages array
-            const completeMessage: ChatMessage = {
-                messageId: messageId || `msg-${Date.now()}`,
+            const newMessage: ChatMessage = {
+                messageId,
                 role: 'assistant',
-                content: finalContent,
+                content: content,
                 timestamp: Date.now(),
+                isStreaming: true,
                 metadata: currentRAGChunksRef.current ? { retrievedChunks: currentRAGChunksRef.current } : undefined
             };
 
-            console.log('Complete message object:', {
-                messageId: completeMessage.messageId,
-                contentLength: completeMessage.content.length,
-                hasMetadata: !!completeMessage.metadata,
-                hasRAGChunks: !!completeMessage.metadata?.retrievedChunks
+            console.log('New message object:', {
+                messageId: newMessage.messageId,
+                hasMetadata: !!newMessage.metadata,
+                chunksCount: newMessage.metadata?.retrievedChunks?.length || 0
             });
 
-            // Add message to array
             setMessages(prev => {
-                console.log('Adding complete message to array, current count:', prev.length);
-                const newMessages = [...prev, completeMessage];
-                console.log('New message count:', newMessages.length);
-                console.log('Last message content length:', newMessages[newMessages.length - 1]?.content?.length || 0);
-                return newMessages;
+                streamingMessageIndexRef.current = prev.length;
+                return [...prev, newMessage];
             });
+            setIsTyping(false);
+            return;
+        }
 
-            // Clear streaming state immediately (no setTimeout needed since we have the full content)
-            console.log('Clearing streaming state');
-            setStreamingContent('');
+        // Subsequent streaming chunks - update message in place
+        if (!isComplete && content && streamingMessageIndexRef.current !== null) {
+            console.log('Updating streaming message in place');
+            console.log('Current RAG chunks during update:', currentRAGChunksRef.current);
+            setMessages(prev => {
+                const updated = [...prev];
+                const index = streamingMessageIndexRef.current!;
+                if (updated[index]) {
+                    // Preserve existing metadata and update with new RAG chunks if available
+                    const existingMetadata = updated[index].metadata;
+                    const newMetadata = currentRAGChunksRef.current
+                        ? { ...existingMetadata, retrievedChunks: currentRAGChunksRef.current }
+                        : existingMetadata;
+
+                    console.log('Updating message metadata:', {
+                        hadExistingMetadata: !!existingMetadata,
+                        hasNewRAGChunks: !!currentRAGChunksRef.current,
+                        finalMetadata: newMetadata
+                    });
+
+                    updated[index] = {
+                        ...updated[index],
+                        content: content,
+                        metadata: newMetadata
+                    };
+                }
+                return updated;
+            });
+            return;
+        }
+
+        // Complete message - finalize the streaming message
+        if (isComplete) {
+            console.log('=== COMPLETE MESSAGE HANDLER ===');
+            console.log('Current RAG chunks:', currentRAGChunksRef.current);
+            console.log('Current message ID:', currentMessageIdRef.current);
+            const indexValue = streamingMessageIndexRef.current;
+            console.log('streamingMessageIndexRef.current:', indexValue);
+
+            const finalContent = content || '';
+
+            if (indexValue !== null) {
+                console.log('Path: Updating existing streaming message at index:', indexValue);
+
+                // Store RAG chunks separately if they exist
+                const hasRAGChunks = currentRAGChunksRef.current && currentRAGChunksRef.current.length > 0;
+                const hasMessageId = currentMessageIdRef.current !== null;
+                console.log('Has RAG chunks:', hasRAGChunks, 'Has message ID:', hasMessageId);
+
+                if (hasRAGChunks && hasMessageId) {
+                    const msgId = currentMessageIdRef.current!;
+                    const chunks = currentRAGChunksRef.current!;
+                    console.log('BEFORE setMessageRAGChunks - msgId:', msgId, 'chunks count:', chunks.length);
+
+                    // Use flushSync to ensure RAG chunks are set BEFORE messages update
+                    flushSync(() => {
+                        setMessageRAGChunks(prev => {
+                            console.log('INSIDE setMessageRAGChunks setter - prev state:', prev);
+                            const newState = {
+                                ...prev,
+                                [msgId]: chunks
+                            };
+                            console.log('INSIDE setMessageRAGChunks setter - new state:', newState);
+                            return newState;
+                        });
+                    });
+
+                    console.log('AFTER setMessageRAGChunks call (flushed)');
+                } else {
+                    console.log('SKIPPING RAG chunks storage - hasRAGChunks:', hasRAGChunks, 'hasMessageId:', hasMessageId);
+                }
+
+                // Update existing streaming message to mark it as complete
+                setMessages(prev => {
+                    // Use map to create completely new array and objects
+                    return prev.map((msg, idx) => {
+                        if (idx !== indexValue) {
+                            return msg; // Return unchanged messages as-is
+                        }
+
+                        console.log('Finalizing message:', msg.messageId);
+
+                        // Return completely new message object
+                        return {
+                            messageId: msg.messageId,
+                            role: msg.role,
+                            content: finalContent || msg.content,
+                            timestamp: msg.timestamp,
+                            isStreaming: false
+                        };
+                    });
+                });
+            } else {
+                // No streaming message exists, add complete message directly
+                console.log('Path: No streaming message, adding complete message directly');
+                console.log('Final content length:', finalContent.length);
+                console.log('Has RAG chunks:', !!currentRAGChunksRef.current);
+
+                if (finalContent || currentRAGChunksRef.current) {
+                    const msgId = messageId || `msg-${Date.now()}`;
+
+                    // Store RAG chunks separately if they exist
+                    const hasRAGChunks = currentRAGChunksRef.current && currentRAGChunksRef.current.length > 0;
+                    console.log('Has RAG chunks for new message:', hasRAGChunks);
+
+                    if (hasRAGChunks) {
+                        const chunks = currentRAGChunksRef.current!;
+                        console.log('BEFORE setMessageRAGChunks (new msg) - msgId:', msgId, 'chunks count:', chunks.length);
+
+                        // Use flushSync to ensure RAG chunks are set BEFORE messages update
+                        flushSync(() => {
+                            setMessageRAGChunks(prev => {
+                                console.log('INSIDE setMessageRAGChunks setter (new msg) - prev state:', prev);
+                                const newState = {
+                                    ...prev,
+                                    [msgId]: chunks
+                                };
+                                console.log('INSIDE setMessageRAGChunks setter (new msg) - new state:', newState);
+                                return newState;
+                            });
+                        });
+
+                        console.log('AFTER setMessageRAGChunks call (new msg, flushed)');
+                    }
+
+                    const completeMessage: ChatMessage = {
+                        messageId: msgId,
+                        role: 'assistant',
+                        content: finalContent,
+                        timestamp: Date.now()
+                    };
+
+                    console.log('Adding complete message:', msgId);
+                    setMessages(prev => [...prev, completeMessage]);
+                }
+            }
+
+            // Clear streaming state
             setIsTyping(false);
             currentMessageIdRef.current = null;
             currentRAGChunksRef.current = undefined;
-            streamingContentRef.current = '';
-        } else {
-            // Streaming token - update streaming content
-            if (content) {
-                console.log('Streaming update - content length:', content.length);
-                console.log('Content preview:', content.substring(0, 100));
-                console.log('Current messageId:', messageId, 'Previous messageId (ref):', currentMessageIdRef.current);
+            streamingMessageIndexRef.current = null;
 
-                // Set the message ID on first chunk
-                if (!currentMessageIdRef.current && messageId) {
-                    console.log('Setting initial message ID:', messageId);
-                    currentMessageIdRef.current = messageId;
-                }
-
-                // Backend sends full accumulated content each time, so just replace
-                console.log('Updating streaming content (backend sends full content)');
-                setStreamingContent(content);
-                streamingContentRef.current = content; // Also store in ref
-                setIsTyping(false);
-            } else if (retrievedChunks && retrievedChunks.length > 0) {
-                // Message has RAG chunks but no content - keep showing streaming state
-                console.log('Streaming message with RAG chunks but no content yet');
-                setIsTyping(false);
-            } else {
-                console.log('No content in streaming message');
-            }
+            console.log('Finalized streaming message');
         }
     };
 
@@ -253,7 +367,6 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
         }
 
         setIsTyping(false);
-        setStreamingContent('');
     };
 
     // Send message (optimistic UI update)
@@ -345,9 +458,8 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
 
             <ChatWindow
                 messages={messages}
+                messageRAGChunks={messageRAGChunks}
                 isTyping={isTyping}
-                streamingContent={streamingContent}
-                streamingRAGChunks={currentRAGChunksRef.current}
                 className="chat-window-flex"
             />
 

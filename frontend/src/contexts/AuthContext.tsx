@@ -126,9 +126,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 loading: false,
             });
 
-            // Small delay to ensure DynamoDB session is fully propagated
-            // This prevents WebSocket 403 errors due to eventual consistency
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Delay to ensure DynamoDB session is fully propagated and Lambda authorizer is ready
+            // This prevents WebSocket 403 errors on first connection attempt
+            // The authorizer uses ConsistentRead, but we need to account for:
+            // 1. Network latency between login API and session write
+            // 2. Lambda cold start for the authorizer
+            // 3. API Gateway request routing time
+            await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
             console.error('Login failed:', error);
             throw error;

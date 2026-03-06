@@ -1,46 +1,12 @@
-# CloudWatch Log Group for API Gateway
-resource "aws_cloudwatch_log_group" "api_gateway" {
-  name              = "/aws/apigateway/${var.environment}-chatbot"
-  retention_in_days = 365
+# Note: API Gateway log groups are created in their respective modules
+# - REST API module creates: /aws/apigateway/${environment}-chatbot-api
+# - WebSocket module creates: /aws/apigateway/${environment}-websocket
 
-  tags = {
-    Name        = "${var.environment}-chatbot-api-gateway-logs"
-    Environment = var.environment
-  }
-}
-
-# CloudWatch Log Group for Lambda - Authentication
-resource "aws_cloudwatch_log_group" "lambda_auth" {
-  name              = "/aws/lambda/${var.environment}-chatbot-auth"
-  retention_in_days = 365
-
-  tags = {
-    Name        = "${var.environment}-chatbot-lambda-auth-logs"
-    Environment = var.environment
-  }
-}
-
-# CloudWatch Log Group for Lambda - WebSocket Handler
-resource "aws_cloudwatch_log_group" "lambda_websocket" {
-  name              = "/aws/lambda/${var.environment}-chatbot-websocket"
-  retention_in_days = 365
-
-  tags = {
-    Name        = "${var.environment}-chatbot-lambda-websocket-logs"
-    Environment = var.environment
-  }
-}
-
-# CloudWatch Log Group for Lambda - Chat Handler
-resource "aws_cloudwatch_log_group" "lambda_chat" {
-  name              = "/aws/lambda/${var.environment}-chatbot-chat"
-  retention_in_days = 365
-
-  tags = {
-    Name        = "${var.environment}-chatbot-lambda-chat-logs"
-    Environment = var.environment
-  }
-}
+# Note: Lambda-specific log groups are created in their respective modules
+# - Auth module creates: /aws/lambda/${environment}-auth-login, -logout, -api-authorizer
+# - WebSocket handlers module creates: /aws/lambda/${environment}-websocket-connect, -disconnect, -message
+# - Chat history module creates: /aws/lambda/${environment}-chatbot-chat-history
+# - Document management module creates: /aws/lambda/${environment}-document-upload, -list, -delete
 
 # CloudWatch Log Group for Lambda - Document Processor
 resource "aws_cloudwatch_log_group" "lambda_document_processor" {
@@ -117,16 +83,9 @@ resource "aws_cloudwatch_log_group" "audit_document_operations" {
   }
 }
 
-# CloudWatch Log Group for Application Logs
-resource "aws_cloudwatch_log_group" "application_logs" {
-  name              = "/aws/chatbot/${var.environment}/application"
-  retention_in_days = 365
-
-  tags = {
-    Name        = "${var.environment}-chatbot-application-logs"
-    Environment = var.environment
-  }
-}
+# Note: Application logs are written to Lambda-specific log groups
+# Each Lambda function creates its own log group automatically
+# No separate application_logs group is needed
 
 # CloudWatch Metric Alarm - Lambda Errors
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
@@ -188,7 +147,7 @@ resource "aws_cloudwatch_metric_alarm" "high_latency" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    FunctionName = "${var.environment}-chatbot-chat"
+    FunctionName = "${var.environment}-websocket-message"
   }
 
   alarm_actions = var.system_alerts_topic_arn != "" ? [var.system_alerts_topic_arn] : []

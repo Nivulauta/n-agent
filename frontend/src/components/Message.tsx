@@ -12,12 +12,26 @@ import './Message.css';
 
 interface MessageProps {
     message: ChatMessage;
+    ragChunks?: DocumentChunk[];
 }
 
-const Message: React.FC<MessageProps> = ({ message }) => {
+const Message: React.FC<MessageProps> = ({ message, ragChunks }) => {
     const [showCitations, setShowCitations] = useState(false);
     const isUser = message.role === 'user';
-    const hasCitations = message.metadata?.retrievedChunks && message.metadata.retrievedChunks.length > 0;
+
+    // Calculate hasCitations from ragChunks prop
+    const hasCitations = ragChunks && ragChunks.length > 0;
+
+    console.log('=== Message Component Render ===');
+    console.log('Message ID:', message.messageId);
+    console.log('Role:', message.role);
+    console.log('ragChunks prop:', ragChunks);
+    console.log('ragChunks type:', typeof ragChunks);
+    console.log('ragChunks is array:', Array.isArray(ragChunks));
+    console.log('ragChunks length:', ragChunks?.length);
+    console.log('hasCitations:', hasCitations);
+    console.log('==============================');
+
 
     const formatTimestamp = (timestamp: number): string => {
         const date = new Date(timestamp);
@@ -78,15 +92,16 @@ const Message: React.FC<MessageProps> = ({ message }) => {
                 )}
             </div>
 
-            {hasCitations && (
+            {/* Citations section */}
+            {hasCitations && ragChunks && (
                 <div className="message-footer">
                     <button
                         className="citations-toggle"
                         onClick={() => setShowCitations(!showCitations)}
                     >
-                        {showCitations ? '▼' : '▶'} View Sources ({message.metadata!.retrievedChunks!.length})
+                        {showCitations ? '▼' : '▶'} View Sources ({ragChunks.length})
                     </button>
-                    {showCitations && renderCitations(message.metadata!.retrievedChunks!)}
+                    {showCitations && renderCitations(ragChunks)}
                 </div>
             )}
 

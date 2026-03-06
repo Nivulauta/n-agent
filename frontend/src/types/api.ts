@@ -54,6 +54,7 @@ export interface ChatMessage {
     role: 'user' | 'assistant';
     content: string;
     timestamp: number;
+    isStreaming?: boolean; // Indicates if message is currently being streamed
     metadata?: {
         retrievedChunks?: DocumentChunk[];
         tokenCount?: number;

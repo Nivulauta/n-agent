@@ -21,6 +21,20 @@ resource "aws_apigatewayv2_stage" "websocket" {
     throttling_rate_limit  = 50
   }
 
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.websocket_logs.arn
+    format = jsonencode({
+      requestId               = "$context.requestId"
+      ip                      = "$context.identity.sourceIp"
+      requestTime             = "$context.requestTime"
+      routeKey                = "$context.routeKey"
+      status                  = "$context.status"
+      protocol                = "$context.protocol"
+      responseLength          = "$context.responseLength"
+      integrationErrorMessage = "$context.integrationErrorMessage"
+    })
+  }
+
   tags = {
     Name        = "${var.environment}-websocket-stage"
     Environment = var.environment

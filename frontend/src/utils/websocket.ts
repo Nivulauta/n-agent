@@ -193,6 +193,7 @@ export class WebSocketManager {
         if (event.code === 1006) {
             console.error('WebSocket closed abnormally (1006) - likely authentication failure (403)');
             console.error('Check: 1) Token is valid, 2) Token not expired, 3) Session exists in DynamoDB');
+            console.error('This can happen immediately after login due to timing - retry should succeed');
         } else if (event.code === 1008) {
             console.error('WebSocket policy violation (1008) - authorization denied');
         } else if (event.code === 1011) {
@@ -204,18 +205,27 @@ export class WebSocketManager {
 
         // Attempt reconnection if not intentionally closed
         if (!this.intentionallyClosed && this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.scheduleReconnect();
+            // For authentication failures (1006) on first attempt, use shorter delay
+            // This handles the race condition after login where session might not be ready yet
+            if (event.code === 1006 && this.reconnectAttempts === 0) {
+                console.log('First connection attempt failed with 1006 - retrying quickly (likely post-login timing issue)');
+                this.scheduleReconnect(500); // 500ms for first retry after auth failure
+            } else {
+                this.scheduleReconnect();
+            }
         } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.error('Max reconnection attempts reached');
         }
     }
 
-    private scheduleReconnect(): void {
+    private scheduleReconnect(customDelay?: number): void {
         this.clearReconnectTimeout();
 
-        // Use exponential backoff with max delay
-        const delayIndex = Math.min(this.reconnectAttempts, this.reconnectDelays.length - 1);
-        const delay = this.reconnectDelays[delayIndex];
+        // Use custom delay if provided, otherwise use exponential backoff
+        const delay = customDelay ?? (() => {
+            const delayIndex = Math.min(this.reconnectAttempts, this.reconnectDelays.length - 1);
+            return this.reconnectDelays[delayIndex];
+        })();
 
         console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
 
