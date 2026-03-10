@@ -1,15 +1,9 @@
-/**
- * Chat Component
- * 
- * Main chat interface that integrates ChatWindow, MessageInput, and WebSocket connection.
- * Implements optimistic UI updates and streaming response handling.
- */
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { WebSocketManager } from '../utils/websocket';
 import type { WebSocketConnectionState } from '../utils/websocket';
 import { parseError } from '../utils/errorHandler';
+import { useChatContext } from '../contexts/ChatContext';
 import type {
     ChatMessage,
     DocumentChunk,
@@ -33,7 +27,9 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocketUrl }) => {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    // Use chat context for persistent state
+    const { chatState, updateMessages } = useChatContext();
+
     const [messageRAGChunks, setMessageRAGChunks] = useState<Record<string, DocumentChunk[]>>({});
     const [isTyping, setIsTyping] = useState(false);
     const [connectionState, setConnectionState] = useState<WebSocketConnectionState>('disconnected');
@@ -70,47 +66,57 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
             console.log('Tokens match:', parsed.token === token);
         }
 
-        const manager = new WebSocketManager({
-            url: websocketUrl,
-            token,
-            onMessage: handleWebSocketMessage,
-            onStateChange: (state) => {
-                console.log('WebSocket state changed to:', state);
-                setConnectionState(state);
+        let manager: WebSocketManager | null = null;
 
-                // Clear error when connection succeeds
-                if (state === 'connected') {
-                    setError(null);
-                    setReconnectInfo(null);
+        // Add a small delay before connecting to ensure session is propagated
+        // This prevents 403 errors when navigating to chat immediately after login
+        // or when switching between views
+        const connectionTimer = setTimeout(() => {
+            manager = new WebSocketManager({
+                url: websocketUrl,
+                token,
+                onMessage: handleWebSocketMessage,
+                onStateChange: (state) => {
+                    console.log('WebSocket state changed to:', state);
+                    setConnectionState(state);
+
+                    // Clear error when connection succeeds
+                    if (state === 'connected') {
+                        setError(null);
+                        setReconnectInfo(null);
+                    }
+
+                    // Don't show error on initial connection failure - let auto-retry handle it
+                    // Only show error if we're in error state and have exhausted retries
+                    if (state === 'error') {
+                        // Error will be shown via reconnectInfo if retries are exhausted
+                        console.log('WebSocket error state - auto-retry will attempt reconnection');
+                    }
+                },
+                onReconnectAttempt: (attempt, maxAttempts, delay) => {
+                    console.log(`Reconnection attempt ${attempt}/${maxAttempts}, delay: ${delay}ms`);
+                    setReconnectInfo({ attempt, maxAttempts, delay });
+
+                    // Only show error if we've exhausted all retry attempts
+                    if (attempt >= maxAttempts) {
+                        setError({
+                            message: 'Failed to connect to chat server after multiple attempts. Please check your connection and try again.',
+                            retryable: true
+                        });
+                    }
                 }
+            });
 
-                // Don't show error on initial connection failure - let auto-retry handle it
-                // Only show error if we're in error state and have exhausted retries
-                if (state === 'error') {
-                    // Error will be shown via reconnectInfo if retries are exhausted
-                    console.log('WebSocket error state - auto-retry will attempt reconnection');
-                }
-            },
-            onReconnectAttempt: (attempt, maxAttempts, delay) => {
-                console.log(`Reconnection attempt ${attempt}/${maxAttempts}, delay: ${delay}ms`);
-                setReconnectInfo({ attempt, maxAttempts, delay });
-
-                // Only show error if we've exhausted all retry attempts
-                if (attempt >= maxAttempts) {
-                    setError({
-                        message: 'Failed to connect to chat server after multiple attempts. Please check your connection and try again.',
-                        retryable: true
-                    });
-                }
-            }
-        });
-
-        manager.connect();
-        setWsManager(manager);
+            manager.connect();
+            setWsManager(manager);
+        }, 300); // 300ms delay to ensure session propagation
 
         return () => {
             console.log('Cleaning up WebSocket connection');
-            manager.disconnect();
+            clearTimeout(connectionTimer);
+            if (manager) {
+                manager.disconnect();
+            }
         };
     }, [websocketUrl, token]);
 
@@ -192,7 +198,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
                 chunksCount: newMessage.metadata?.retrievedChunks?.length || 0
             });
 
-            setMessages(prev => {
+            updateMessages(prev => {
                 streamingMessageIndexRef.current = prev.length;
                 return [...prev, newMessage];
             });
@@ -204,7 +210,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
         if (!isComplete && content && streamingMessageIndexRef.current !== null) {
             console.log('Updating streaming message in place');
             console.log('Current RAG chunks during update:', currentRAGChunksRef.current);
-            setMessages(prev => {
+            updateMessages(prev => {
                 const updated = [...prev];
                 const index = streamingMessageIndexRef.current!;
                 if (updated[index]) {
@@ -273,7 +279,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
                 }
 
                 // Update existing streaming message to mark it as complete
-                setMessages(prev => {
+                updateMessages(prev => {
                     // Use map to create completely new array and objects
                     return prev.map((msg, idx) => {
                         if (idx !== indexValue) {
@@ -333,7 +339,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
                     };
 
                     console.log('Adding complete message:', msgId);
-                    setMessages(prev => [...prev, completeMessage]);
+                    updateMessages(prev => [...prev, completeMessage]);
                 }
             }
 
@@ -394,7 +400,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
             timestamp: Date.now()
         };
 
-        setMessages(prev => [...prev, userMessage]);
+        updateMessages(prev => [...prev, userMessage]);
 
         // Send message via WebSocket
         try {
@@ -457,7 +463,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
             )}
 
             <ChatWindow
-                messages={messages}
+                messages={chatState.messages}
                 messageRAGChunks={messageRAGChunks}
                 isTyping={isTyping}
                 className="chat-window-flex"

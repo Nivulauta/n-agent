@@ -1,13 +1,21 @@
-import { Box, Typography, Button, AppBar, Toolbar, Container, Grid, Paper } from '@mui/material';
+import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Box, Typography, Button, AppBar, Toolbar, IconButton, useTheme, useMediaQuery } from '@mui/material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import Chat from './components/Chat';
-import DocumentManager from './components/DocumentManager';
-import API_CONFIG from './config/api';
+import Navigation, { DRAWER_WIDTH } from './components/Navigation';
+import Home from './components/Home';
+import ChatView from './components/ChatView';
+import DocumentsView from './components/DocumentsView';
 import './App.css';
 
 function MainContent() {
-  const { user, token, logout } = useAuth();
+  const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleLogout = async () => {
     try {
@@ -17,18 +25,37 @@ function MainContent() {
     }
   };
 
-  // Generate a session ID for the chat (you might want to get this from the auth context)
-  const sessionId = user?.sessionId || `session-${Date.now()}`;
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   return (
-    <Box sx={{ flexGrow: 1, height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static">
+    <Box sx={{ display: 'flex', height: '100vh' }}>
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { sm: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          ml: { md: `${DRAWER_WIDTH}px` },
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+        }}
+      >
         <Toolbar>
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             AWS Claude RAG Agent
           </Typography>
-          <Typography variant="body1" sx={{ mr: 2 }}>
-            Welcome, {user?.username}
+          <Typography variant="body1" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
+            {user?.username}
           </Typography>
           <Button color="inherit" onClick={handleLogout}>
             Logout
@@ -36,63 +63,42 @@ function MainContent() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 3, overflow: 'hidden' }}>
-        <Grid container spacing={3} sx={{ height: '100%' }}>
-          {/* Document Management Panel */}
-          <Grid size={{ xs: 12, md: 4, lg: 3 }}>
-            <Paper
-              elevation={3}
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'auto'
-              }}
-            >
-              <DocumentManager />
-            </Paper>
-          </Grid>
+      <Navigation open={isMobile ? mobileOpen : undefined} onToggle={isMobile ? handleDrawerToggle : undefined} />
 
-          {/* Chat Interface */}
-          <Grid size={{ xs: 12, md: 8, lg: 9 }}>
-            <Paper
-              elevation={3}
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden'
-              }}
-            >
-              {token && user ? (
-                <Chat
-                  token={token}
-                  userId={user.userId}
-                  sessionId={sessionId}
-                  websocketUrl={API_CONFIG.wsUrl}
-                />
-              ) : (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    Loading chat...
-                  </Typography>
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { sm: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          ml: { md: `${DRAWER_WIDTH}px` },
+          height: '100vh',
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Toolbar /> {/* Spacer for AppBar */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/chat" element={<ChatView />} />
+          <Route path="/documents" element={<DocumentsView />} />
+        </Routes>
+      </Box>
     </Box>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <ProtectedRoute>
-        <MainContent />
-      </ProtectedRoute>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <ChatProvider>
+          <ProtectedRoute>
+            <MainContent />
+          </ProtectedRoute>
+        </ChatProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
