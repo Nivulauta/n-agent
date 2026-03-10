@@ -90,7 +90,7 @@ variable "alert_email" {
 }
 
 variable "cors_origin" {
-  description = "CORS origin for API responses (e.g., http://localhost:5173 for development, https://app.example.com for production)"
+  description = "CORS origin for API responses (e.g., http://localhost:5173 for development, https://app.example.com for production). NOTE: This variable is deprecated - the system now automatically uses the frontend_url output from the frontend module."
   type        = string
   default     = "http://localhost:5173"
 }

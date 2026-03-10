@@ -17,7 +17,6 @@ import {
     Home as HomeIcon,
     Chat as ChatIcon,
     Description as DocumentIcon,
-    Menu as MenuIcon,
     ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';

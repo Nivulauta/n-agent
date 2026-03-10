@@ -69,15 +69,45 @@ The build output will be in the `dist/` directory.
 
 ## Deployment to S3
 
-After building, deploy to S3:
+We provide automated deployment scripts that handle building, uploading, and cache invalidation:
 
-```bash
-# Sync build to S3 bucket
-aws s3 sync dist/ s3://your-bucket-name --delete
+### Quick Deployment (Recommended)
 
-# Invalidate CloudFront cache (if using CloudFront)
-aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
+**Windows (PowerShell):**
+```powershell
+.\deploy-auto.ps1
 ```
+
+**Linux/Mac (Bash):**
+```bash
+./deploy-auto.sh
+```
+
+The script automatically:
+- Builds the React application
+- Retrieves S3 bucket and CloudFront distribution from Terraform
+- Uploads to S3 with optimized cache headers
+- Invalidates CloudFront cache
+- Displays the live URL
+
+### Manual Deployment
+
+If you need more control:
+
+**Windows:**
+```powershell
+.\deploy.ps1 -BucketName <bucket-name> -DistributionId <dist-id>
+```
+
+**Linux/Mac:**
+```bash
+./deploy.sh <bucket-name> <dist-id>
+```
+
+### Documentation
+
+- **Quick Start**: See [DEPLOY_QUICK_START.md](./DEPLOY_QUICK_START.md)
+- **Full Guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed documentation
 
 ## Project Structure
 

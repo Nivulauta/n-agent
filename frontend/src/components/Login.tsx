@@ -90,7 +90,7 @@ export const Login: React.FC = () => {
                 }}
             >
                 <Typography variant="h4" component="h1" gutterBottom align="center">
-                    AWS Claude RAG Chatbot
+                    Nivulauta Agent
                 </Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom align="center" sx={{ mb: 3 }}>
                     Sign in to continue

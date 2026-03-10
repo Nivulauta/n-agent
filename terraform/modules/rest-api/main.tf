@@ -409,6 +409,7 @@ resource "aws_api_gateway_deployment" "chatbot" {
       aws_api_gateway_integration_response.documents_upload_options.id,
       aws_api_gateway_integration_response.documents_id_options.id,
       aws_api_gateway_integration_response.chat_history_options.id,
+      var.cors_origin, # Force redeployment when CORS origin changes
     ]))
   }
 

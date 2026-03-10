@@ -586,7 +586,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - **Validates: Requirements 2.5**
 
 
-- [ ] 22. Deploy frontend to S3 and CloudFront
+- [x] 22. Deploy frontend to S3 and CloudFront
   - [x] 22.1 Create S3 bucket for static hosting with Terraform
     - Configure S3 bucket for static website hosting
     - Enable versioning for rollback capability
@@ -600,14 +600,14 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Set up custom domain if needed
     - _Requirements: 13.1_
   
-  - [ ] 22.3 Create deployment script
+  - [x] 22.3 Create deployment script
     - Build React app for production
     - Upload build artifacts to S3
     - Invalidate CloudFront cache after deployment
     - _Requirements: 13.1_
 
 
-- [ ] 23. Checkpoint - Ensure frontend integrates with backend
+- [x] 23. Checkpoint - Ensure frontend integrates with backend
   - Ensure all tests pass, ask the user if questions arise.
 
 
