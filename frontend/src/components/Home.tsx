@@ -32,7 +32,7 @@ export default function Home() {
         <Box sx={{ flexGrow: 1, p: 3 }}>
             <Paper elevation={0} sx={{ p: 4, mb: 4, textAlign: 'center', bgcolor: 'primary.main', color: 'white' }}>
                 <Typography variant="h3" component="h1" gutterBottom>
-                    Welcome to AWS Claude RAG Agent
+                    Welcome to the Nivulauta Agent
                 </Typography>
                 <Typography variant="h6" component="p">
                     Hello, {user?.username}! Get started by exploring the features below.
@@ -41,7 +41,7 @@ export default function Home() {
 
             <Grid container spacing={3}>
                 {features.map((feature) => (
-                    <Grid item xs={12} md={4} key={feature.title}>
+                    <Grid size={{ xs: 12, md: 4 }} key={feature.title}>
                         <Card elevation={3}>
                             <CardActionArea onClick={() => navigate(feature.path)} sx={{ height: '100%' }}>
                                 <CardContent sx={{ textAlign: 'center', py: 4 }}>

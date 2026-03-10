@@ -587,13 +587,13 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 
 
 - [ ] 22. Deploy frontend to S3 and CloudFront
-  - [ ] 22.1 Create S3 bucket for static hosting with Terraform
+  - [x] 22.1 Create S3 bucket for static hosting with Terraform
     - Configure S3 bucket for static website hosting
     - Enable versioning for rollback capability
     - Configure bucket policy for CloudFront access
     - _Requirements: 13.1_
   
-  - [ ] 22.2 Create CloudFront distribution with Terraform
+  - [x] 22.2 Create CloudFront distribution with Terraform
     - Configure CloudFront with S3 origin
     - Enable HTTPS with ACM certificate
     - Configure caching behavior for static assets

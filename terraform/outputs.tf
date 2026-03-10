@@ -189,3 +189,49 @@ output "cloudwatch_dashboard_arn" {
   description = "CloudWatch dashboard ARN"
   value       = module.monitoring.dashboard_arn
 }
+
+# Frontend outputs
+output "frontend_bucket_name" {
+  description = "Name of the S3 bucket for frontend static hosting"
+  value       = module.frontend.frontend_bucket_name
+}
+
+output "frontend_bucket_arn" {
+  description = "ARN of the S3 bucket for frontend static hosting"
+  value       = module.frontend.frontend_bucket_arn
+}
+
+output "frontend_bucket_website_endpoint" {
+  description = "Website endpoint of the S3 bucket"
+  value       = module.frontend.frontend_bucket_website_endpoint
+}
+
+output "cloudfront_oai_id" {
+  description = "CloudFront Origin Access Identity ID"
+  value       = module.frontend.cloudfront_oai_id
+}
+
+output "cloudfront_oai_iam_arn" {
+  description = "IAM ARN of CloudFront Origin Access Identity"
+  value       = module.frontend.cloudfront_oai_iam_arn
+}
+
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution for cache invalidation"
+  value       = module.frontend.cloudfront_distribution_id
+}
+
+output "cloudfront_distribution_arn" {
+  description = "ARN of the CloudFront distribution"
+  value       = module.frontend.cloudfront_distribution_arn
+}
+
+output "cloudfront_domain_name" {
+  description = "Domain name of the CloudFront distribution"
+  value       = module.frontend.cloudfront_domain_name
+}
+
+output "frontend_url" {
+  description = "URL to access the frontend application"
+  value       = module.frontend.frontend_url
+}

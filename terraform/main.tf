@@ -267,3 +267,10 @@ module "chat_history" {
   kms_key_arn             = module.security.kms_key_arn
   kms_key_id              = module.security.kms_key_id
 }
+
+module "frontend" {
+  source = "./modules/frontend"
+
+  environment = var.environment
+  account_id  = local.account_id
+}

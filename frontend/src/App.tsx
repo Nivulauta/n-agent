@@ -52,7 +52,7 @@ function MainContent() {
             </IconButton>
           )}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            AWS Claude RAG Agent
+            N-Agent
           </Typography>
           <Typography variant="body1" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
             {user?.username}

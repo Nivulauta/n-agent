@@ -73,23 +73,33 @@ This chatbot system enables users to interact with Claude Haiku 4.5 while automa
 │   ├── src/
 │   │   ├── components/   # React components
 │   │   │   ├── Auth.tsx           # Authentication wrapper
+│   │   │   ├── Navigation.tsx     # Side navigation bar
+│   │   │   ├── Home.tsx           # Landing page
+│   │   │   ├── ChatView.tsx       # Chat view wrapper
 │   │   │   ├── Chat.tsx           # Main chat interface
-│   │   │   ├── ChatWindow.tsx     # Message display
+│   │   │   ├── ChatWindow.tsx     # Message display with auto-scroll
 │   │   │   ├── Message.tsx        # Individual message with citations
 │   │   │   ├── MessageInput.tsx   # Message input field
+│   │   │   ├── DocumentsView.tsx  # Documents view wrapper
 │   │   │   ├── DocumentManager.tsx # Document upload/list
 │   │   │   ├── ConnectionStatus.tsx # WebSocket status
 │   │   │   ├── ErrorMessage.tsx    # Error display
 │   │   │   └── RateLimitError.tsx  # Rate limit handling
 │   │   ├── contexts/     # React contexts
-│   │   │   └── AuthContext.tsx    # Authentication state
+│   │   │   ├── AuthContext.tsx    # Authentication state
+│   │   │   └── ChatContext.tsx    # Chat state persistence
 │   │   ├── utils/        # Utility functions
-│   │   │   ├── websocket.ts       # WebSocket manager
+│   │   │   ├── websocket.ts       # WebSocket manager with reconnection
 │   │   │   ├── api.ts             # REST API client
+│   │   │   ├── axios.ts           # Axios instance with interceptors
+│   │   │   ├── auth.ts            # Token management utilities
 │   │   │   └── errorHandler.ts    # Error parsing
 │   │   ├── types/        # TypeScript types
-│   │   │   └── api.ts             # API type definitions
-│   │   └── App.tsx       # Root component
+│   │   │   ├── api.ts             # API type definitions
+│   │   │   └── auth.ts            # Auth type definitions
+│   │   ├── config/       # Configuration
+│   │   │   └── api.ts             # API endpoints configuration
+│   │   └── App.tsx       # Root component with routing
 │   ├── public/           # Static assets
 │   └── package.json      # Dependencies
 │
@@ -302,22 +312,33 @@ Integration       ░░░░░░░░░░░░░░░░░░░░  
 
 #### **Frontend React Application** (Task 21) ✓
 - React 18 with TypeScript and Vite build system
+- Material-UI component library for consistent design
 - Authentication components with login/logout
   - Session token management with localStorage
   - Automatic token refresh logic
-  - Post-login delay to prevent WebSocket race conditions
+  - Post-login delay (500ms) to prevent WebSocket race conditions
+  - Session timeout detection with automatic logout
+- Navigation system
+  - Side navigation bar with Home, Chat, and Documents views
+  - Persistent navigation state across route changes
+  - Responsive design (collapsible on mobile, permanent on desktop)
+  - Active route highlighting
 - WebSocket connection manager
-  - Automatic reconnection with exponential backoff (1s, 2s, 4s, 8s)
-  - Smart retry logic for initial connection failures
+  - Automatic reconnection with exponential backoff (1s, 2s, 4s, 8s, 16s)
+  - Smart retry logic for initial connection failures (300ms delay on first connect)
   - Connection state management (connecting, connected, disconnected, error)
   - Keep-alive ping every 5 minutes
+  - Token update detection and automatic reconnection
+  - Session expiration handling with user notification
 - Chat interface with streaming responses
   - Real-time message streaming with in-place updates (no flicker)
+  - Smooth auto-scrolling during streaming (requestAnimationFrame optimization)
+  - User messages scroll to top of viewport to keep responses visible
   - Typing indicator while waiting for responses
   - Optimistic UI updates for user messages
   - RAG source citations with expandable "View Sources" button
   - Markdown rendering for assistant responses with syntax highlighting
-  - Auto-scroll to bottom on new messages
+  - Chat state persistence across navigation (messages preserved when switching views)
 - Document management UI
   - File upload with drag-and-drop support
   - PDF validation (type and size checks up to 100MB)
@@ -326,119 +347,15 @@ Integration       ░░░░░░░░░░░░░░░░░░░░  
   - Document deletion with confirmation
 - Error handling and user feedback
   - Rate limit errors with countdown timer
-  - Connection status indicators
-  - Reconnection attempt tracking
+  - Connection status indicators with reconnection attempt tracking
+  - Session expiration notifications
   - Graceful error messages with retry options
   - Auto-dismissing success notifications
-- Responsive design with CSS Grid/Flexbox
-- Component architecture: Auth, Chat, ChatWindow, Message, MessageInput, DocumentManager, ConnectionStatus, ErrorMessage, RateLimitError
+- Responsive design with CSS Grid/Flexbox and Material-UI breakpoints
+- Component architecture: Auth, Navigation, Home, ChatView, Chat, ChatWindow, Message, MessageInput, DocumentsView, DocumentManager, ConnectionStatus, ErrorMessage, RateLimitError
+- Context providers: AuthContext (authentication state), ChatContext (chat state persistence)
 
 ### 📋 Planned (Tasks 18-20, 22-26)
-
-#### **Infrastructure Foundation** (Task 1) ✓
-- VPC with private subnets and NAT Gateway
-- S3 buckets with encryption and versioning
-- DynamoDB tables (Sessions, ChatHistory, RateLimits, DocumentMetadata)
-- OpenSearch cluster with k-NN plugin
-- Security groups and IAM roles
-- CloudWatch log groups with 365-day retention
-
-#### **Authentication Service** (Task 2) ✓
-- Lambda Authorizer with JWT validation and 24-hour expiration
-- Login endpoint with session management
-- Logout endpoint with session revocation
-- Property-based tests for invalid credentials rejection
-- Property-based tests for session expiration
-
-#### **WebSocket Manager** (Task 3) ✓
-- WebSocket API Gateway with $connect, $disconnect, and chat_message routes
-- Connection/disconnection handlers with DynamoDB persistence
-- Message sender utility with error handling for stale connections
-- Support for multiple message types (chat_response, typing_indicator, error, system)
-- Property-based tests for connection persistence and reconnection
-
-#### **Rate Limiter** (Task 4) ✓
-- Sliding window algorithm using DynamoDB atomic counters
-- 60 requests/min for regular users, 300 for admins
-- HTTP 429 responses with Retry-After headers
-- Automatic counter reset with DynamoDB TTL
-- Comprehensive unit tests for rate limiting patterns
-
-#### **Audit Logger** (Task 5) ✓
-- Structured JSON logging utility for CloudWatch
-- Event logging (user actions, API calls, document operations)
-- Separate log groups by event type
-- CloudWatch Logs Insights queries for common scenarios
-- Unit tests for audit logging
-
-#### **Cache Layer with ElastiCache Redis** (Task 6) ✓
-- Redis cluster deployment with Terraform (1GB max memory)
-- Cache utility module with LRU eviction policy
-- Response caching with SHA-256 query hashing (1 hour TTL)
-- Search result caching with embedding hashing (15 minutes TTL)
-- Graceful error handling for cache misses
-- Unit tests for cache operations
-
-#### **Bedrock Service Integration** (Task 7) ✓
-- Claude 3 Sonnet client wrapper with AWS SDK Bedrock Runtime
-- Streaming support via InvokeModelWithResponseStream
-- Non-streaming generateResponseSync for batch operations
-- Model parameters: max_tokens=2048, temperature=0.7, top_p=0.9
-- Retry logic with exponential backoff (3 attempts: 1s, 2s, 4s delays)
-- Throttling error handling (ThrottlingException)
-- Conversation context management (last 10 messages, sliding window)
-- Property-based tests for API invocation and retry behavior
-- Unit tests for streaming, error handling, and context formatting
-
-#### **Embedding Generator with Bedrock Titan** (Task 8) ✓
-- Titan Embeddings client (amazon.titan-embed-text-v2:0)
-- Single text embedding generation (1024 dimensions)
-- Batch processing with batch size of 25
-- Parallel batch processing using Promise.all
-- Rate limiting with retry logic
-- Progress tracking for large document sets
-- Unit tests for embedding generation and batch processing
-
-#### **Vector Store with OpenSearch** (Task 9) ✓
-- OpenSearch index with k-NN configuration (1024 dimensions, cosine similarity)
-- HNSW parameters: ef_construction=512, m=16, ef_search=512
-- 5-second refresh interval for near-real-time search
-- OpenSearch client wrapper with VPC endpoint
-- Single and bulk embedding indexing
-- k-NN similarity search with configurable k
-- Metadata filtering (documentIds, dateRange, custom metadata)
-- Document deletion (removes all chunks)
-- Comprehensive unit tests (29 tests covering indexing, search, filtering, edge cases)
-
-#### **Document Processor Lambda** (Task 10) ✓
-- PDF text extraction using pdfplumber with complex layout support
-- Table detection and extraction
-- Page-by-page text extraction with metadata
-- Token-based chunking (512 tokens, 50 token overlap) using tiktoken
-- Unique chunk ID generation (documentId#chunk#index)
-- S3 event trigger for automatic processing on upload
-- Outputs: text.json, pages.json, chunks.json
-- Lambda Layer architecture with Docker build for dependencies
-- Comprehensive unit tests (48 tests covering extraction, chunking, error handling)
-- Terraform module with SNS notifications for failures
-
-#### **Document Processing Orchestration** (Task 11) ✓
-- Document Processor → Embedding Generator integration
-  - Asynchronous Lambda invocation after text extraction and chunking
-  - Passes text chunks with full metadata (documentId, filename, pageNumber, uploadedBy, uploadedAt)
-- Embedding Generator → Vector Store integration
-  - Downloads chunks from S3
-  - Generates embeddings using Bedrock Titan (1024 dimensions)
-  - Batch indexes embeddings in OpenSearch with metadata
-  - Updates DocumentMetadata table with completion status (chunkCount, status=completed)
-- End-to-end integration tests
-  - Test suite validates complete pipeline: upload → extract → chunk → embed → index
-  - Verifies document searchability after processing
-  - Tests chunking overlap, concurrent processing, and error handling
-  - 5 comprehensive test cases covering all pipeline stages
-- Complete pipeline flow: PDF Upload → Extract Text → Chunk (512 tokens, 50 overlap) → Generate Embeddings → Index in OpenSearch → Update Metadata → Document Searchable
-
-### 📋 Planned (Tasks 18-26)
 
 #### **Performance Monitoring** (Task 18)
 - CloudWatch metrics emission
@@ -452,9 +369,10 @@ Integration       ░░░░░░░░░░░░░░░░░░░░  
 - Lambda concurrency limits and provisioned concurrency
 - VPC networking for Lambda functions
 
-#### **Frontend & Deployment** (Tasks 21-22)
-- ✅ React application with TypeScript (Task 21 completed)
-- ⏳ S3 + CloudFront deployment (Task 22 planned)
+#### **Frontend Deployment** (Task 22)
+- S3 + CloudFront deployment
+- Custom domain with SSL/TLS
+- CI/CD pipeline for frontend updates
 
 #### **Integration & Testing** (Tasks 24-25)
 - End-to-end integration tests
@@ -463,9 +381,16 @@ Integration       ░░░░░░░░░░░░░░░░░░░░  
 - Performance benchmarks
 - Deployment documentation and runbooks
 
+#### **Production Readiness** (Task 26)
+- Disaster recovery procedures
+- Backup and restore testing
+- Cost optimization review
+- Security audit
+- Documentation finalization
+
 **Progress: 19 of 26 tasks completed (73%)**
 
-See [tasks.md](.kiro/specs/aws-claude-rag-chatbot/tasks.md) for the complete implementation plan with detailed subtasks.
+See [tasks.md](.kiro/specs/aws-claude-rag-agent/tasks.md) for the complete implementation plan with detailed subtasks.
 
 ## Getting Started
 
