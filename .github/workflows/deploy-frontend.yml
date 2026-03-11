@@ -101,6 +101,7 @@ jobs:
           echo "✅ index.html uploaded to S3"
 
       - name: Invalidate CloudFront cache
+        id: invalidate
         run: |
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
             --distribution-id ${{ steps.terraform-outputs.outputs.distribution_id }} \
