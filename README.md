@@ -55,7 +55,7 @@ This chatbot system enables users to interact with Claude Haiku 4.5 while automa
 ### Technology Stack
 
 - **Frontend**: React 18 with TypeScript and Vite
-- **Backend**: AWS Lambda (Node.js 18.x/TypeScript)
+- **Backend**: AWS Lambda (Node.js 22.x/TypeScript)
 - **API Layer**: AWS API Gateway (REST + WebSocket)
 - **AI/ML**: Amazon Bedrock (Claude Haiku 4.5, Titan Embeddings V2)
 - **Vector Database**: Amazon OpenSearch with k-NN plugin (HNSW algorithm)
@@ -398,7 +398,7 @@ See [tasks.md](.kiro/specs/aws-claude-rag-agent/tasks.md) for the complete imple
 
 - AWS Account with appropriate permissions
 - Terraform >= 1.0
-- Node.js >= 18.x
+- Node.js >= 22.x
 - AWS CLI configured with credentials
 
 ### Deployment

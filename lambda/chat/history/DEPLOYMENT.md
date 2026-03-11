@@ -4,7 +4,7 @@ This guide covers deploying the chat history endpoint Lambda function.
 
 ## Prerequisites
 
-- Node.js 18.x or later
+- Node.js 22.x or later
 - npm
 - AWS CLI configured with appropriate credentials
 - Terraform (if using infrastructure as code)
@@ -56,7 +56,7 @@ resource "aws_lambda_function" "chat_history" {
   function_name    = "chat-history-endpoint"
   role            = aws_iam_role.chat_history_lambda.arn
   handler         = "index.handler"
-  runtime         = "nodejs18.x"
+  runtime         = "nodejs22.x"
   timeout         = 30
   memory_size     = 512
 
@@ -181,7 +181,7 @@ resource "aws_lambda_permission" "api_gateway_chat_history" {
 # Create the Lambda function
 aws lambda create-function \
   --function-name chat-history-endpoint \
-  --runtime nodejs18.x \
+  --runtime nodejs22.x \
   --role arn:aws:iam::ACCOUNT_ID:role/chat-history-lambda-role \
   --handler index.handler \
   --zip-file fileb://dist/lambda-chat-history.zip \

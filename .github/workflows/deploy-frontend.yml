@@ -1,0 +1,155 @@
+name: Deploy Frontend to S3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  NODE_VERSION: '22'
+  AWS_REGION: 'us-east-2'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build React application
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get S3 bucket name from Terraform
+        id: terraform-outputs
+        working-directory: ./terraform
+        run: |
+          # Initialize Terraform to access state
+          terraform init -backend=true
+          
+          # Get outputs
+          BUCKET_NAME=$(terraform output -raw frontend_bucket_name)
+          DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)
+          
+          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
+          echo "distribution_id=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+          
+          echo "✅ S3 Bucket: $BUCKET_NAME"
+          echo "✅ CloudFront Distribution: $DISTRIBUTION_ID"
+
+      - name: Upload static assets to S3
+        working-directory: ./frontend
+        run: |
+          # Upload all files except index.html with long cache
+          aws s3 sync dist/ s3://${{ steps.terraform-outputs.outputs.bucket_name }}/ \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable" \
+            --metadata-directive REPLACE
+          
+          echo "✅ Static assets uploaded to S3"
+
+      - name: Upload index.html to S3
+        working-directory: ./frontend
+        run: |
+          # Upload index.html with no-cache to ensure users get latest version
+          aws s3 cp dist/index.html s3://${{ steps.terraform-outputs.outputs.bucket_name }}/index.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --metadata-directive REPLACE
+          
+          echo "✅ index.html uploaded to S3"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id ${{ steps.terraform-outputs.outputs.distribution_id }} \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          
+          echo "✅ CloudFront invalidation created: $INVALIDATION_ID"
+          echo "invalidation_id=$INVALIDATION_ID" >> $GITHUB_OUTPUT
+
+      - name: Wait for CloudFront invalidation
+        run: |
+          echo "⏳ Waiting for CloudFront invalidation to complete..."
+          aws cloudfront wait invalidation-completed \
+            --distribution-id ${{ steps.terraform-outputs.outputs.distribution_id }} \
+            --id ${{ steps.invalidate.outputs.invalidation_id }}
+          
+          echo "✅ CloudFront cache invalidated successfully"
+        id: wait-invalidation
+        continue-on-error: true
+
+      - name: Get CloudFront domain
+        id: cloudfront-domain
+        run: |
+          DOMAIN=$(aws cloudfront get-distribution \
+            --id ${{ steps.terraform-outputs.outputs.distribution_id }} \
+            --query 'Distribution.DomainName' \
+            --output text)
+          
+          echo "domain=$DOMAIN" >> $GITHUB_OUTPUT
+          echo "🌐 CloudFront Domain: https://$DOMAIN"
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node Version:** ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Time:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌍 Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **S3 Bucket:** \`${{ steps.terraform-outputs.outputs.bucket_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **CloudFront Distribution:** \`${{ steps.terraform-outputs.outputs.distribution_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **CloudFront URL:** https://${{ steps.cloudfront-domain.outputs.domain }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Deployment Steps Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Dependencies installed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ React application built" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Static assets uploaded to S3" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ CloudFront cache invalidated" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The frontend deployment encountered an error. Please check the logs above for details." >> $GITHUB_STEP_SUMMARY

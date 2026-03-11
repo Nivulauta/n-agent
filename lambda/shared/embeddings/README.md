@@ -188,7 +188,7 @@ npm test
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 22+
 - AWS credentials configured
 - Access to Amazon Bedrock with Titan Embeddings model enabled
 

@@ -215,7 +215,7 @@ Terraform (archive_file)
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js >= 22
 - npm or yarn
 - TypeScript
 - Bash (for build scripts)

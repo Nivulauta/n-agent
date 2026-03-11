@@ -178,7 +178,7 @@ https://<cloudfront-domain>
 **Solutions:**
 1. Install dependencies: `npm install`
 2. Check TypeScript errors: `npm run lint`
-3. Verify Node.js version: `node --version` (should be 18+)
+3. Verify Node.js version: `node --version` (should be 22+)
 
 ### S3 Upload Fails
 
@@ -273,7 +273,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
       
       - name: Install dependencies
         run: npm ci

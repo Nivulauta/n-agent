@@ -159,9 +159,9 @@ locals {
 
 ### Compatibility
 
-- **Node.js 22.x**: Latest LTS, recommended
+- **Node.js 22.x**: Latest LTS, recommended and required
 - **Node.js 20.x**: Also supported
-- **Node.js 18.x**: Minimum supported version
+- **Node.js 18.x**: No longer supported
 
 ## Security Updates
 

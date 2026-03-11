@@ -14,7 +14,7 @@ The deployment involves:
 
 - AWS CLI configured with appropriate credentials
 - Terraform >= 1.0
-- Node.js >= 18
+- Node.js >= 22
 - npm or yarn
 - jq (for the automated script)
 

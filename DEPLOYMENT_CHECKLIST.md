@@ -121,7 +121,7 @@ Has RAG chunks: [true/false] [number]
 - [ ] Run `.\check-cors-status.ps1` to verify all endpoints
 
 ### Issue: Build errors
-- [ ] Check Node.js version: `node --version` (should be 18+)
+- [ ] Check Node.js version: `node --version` (should be 22+)
 - [ ] Check npm version: `npm --version`
 - [ ] Clear node_modules: `rm -rf lambda/websocket/message/node_modules`
 - [ ] Reinstall: `cd lambda/websocket/message && npm install`

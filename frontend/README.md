@@ -21,7 +21,7 @@ React-based single-page application for the AWS Claude RAG Chatbot system. Built
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 22+ and npm
 - AWS account with API Gateway and S3 configured
 - Backend services deployed (see main README)
 

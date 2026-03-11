@@ -145,7 +145,7 @@ aws lambda invoke --function-name $FUNCTION_NAME --payload '{}' response.json
 ## Troubleshooting Checklist
 
 ### If Build Fails
-- [ ] Check Node.js version (should be >= 18)
+- [ ] Check Node.js version (should be >= 22)
 - [ ] Check npm version
 - [ ] Delete `node_modules` and `dist` directories
 - [ ] Run `npm install` again
