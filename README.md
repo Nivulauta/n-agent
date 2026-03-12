@@ -1,4 +1,4 @@
-# AWS Claude RAG Agent
+# Nivulauta Agent
 
 A production-ready, serverless RAG (Retrieval-Augmented Generation) chatbot system built on AWS that combines Claude Haiku 4.5 via Amazon Bedrock with semantic document search capabilities. The system provides real-time chat responses grounded in organizational knowledge from PDF documents.
 
