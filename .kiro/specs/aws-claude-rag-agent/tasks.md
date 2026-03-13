@@ -573,15 +573,15 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Show reconnection status to user
     - _Requirements: 10.2, 14.1_
   
-  - [ ]* 21.7 Write property test for user message display
+  - [x] 21.7 Write property test for user message display
     - **Property 3: User Message Display Immediacy**
     - **Validates: Requirements 2.1**
   
-  - [ ]* 21.8 Write property test for response streaming
+  - [x] 21.8 Write property test for response streaming
     - **Property 4: Response Streaming**
     - **Validates: Requirements 2.2**
   
-  - [ ]* 21.9 Write property test for typing indicator
+  - [x] 21.9 Write property test for typing indicator
     - **Property 7: Typing Indicator Display**
     - **Validates: Requirements 2.5**
 
@@ -641,7 +641,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Verify logs are retained for 365 days
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
   
-  - [ ]* 24.5 Run performance benchmarks
+  - [x] 24.5 Run performance benchmarks
     - Measure response time for queries without RAG (target: < 2s)
     - Measure response time for queries with RAG (target: < 2s)
     - Measure document processing time for 10MB PDF (target: < 30s)

@@ -17,9 +17,11 @@ import {
     Home as HomeIcon,
     Chat as ChatIcon,
     Description as DocumentIcon,
+    History as HistoryIcon,
     ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useChatHistory } from '../contexts/ChatHistoryContext';
 
 const DRAWER_WIDTH = 240;
 
@@ -34,6 +36,7 @@ export default function Navigation({ open: controlledOpen, onToggle }: Navigatio
     const location = useLocation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const { toggleHistory, openHistory } = useChatHistory();
 
     console.log('Navigation rendered - location:', location.pathname, 'isMobile:', isMobile);
 
@@ -42,19 +45,36 @@ export default function Navigation({ open: controlledOpen, onToggle }: Navigatio
     const handleToggle = onToggle || (() => setInternalOpen(!internalOpen));
 
     const menuItems = [
-        { text: 'Home', icon: <HomeIcon />, path: '/' },
-        { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
-        { text: 'Documents', icon: <DocumentIcon />, path: '/documents' },
+        { text: 'Home', icon: <HomeIcon />, path: '/', action: 'navigate' as const },
+        { text: 'Chat', icon: <ChatIcon />, path: '/chat', action: 'navigate' as const },
+        { text: 'Documents', icon: <DocumentIcon />, path: '/documents', action: 'navigate' as const },
+        { text: 'History', icon: <HistoryIcon />, path: '/chat', action: 'history' as const },
     ];
 
-    const handleNavigation = (path: string) => {
+    const handleMenuItemClick = (item: typeof menuItems[0]) => {
         console.log('=== Navigation Debug ===');
-        console.log('Attempting to navigate to:', path);
+        console.log('Menu item clicked:', item.text);
+        console.log('Action:', item.action);
         console.log('Current location:', location.pathname);
         console.log('Is mobile:', isMobile);
         console.log('=======================');
 
-        navigate(path);
+        if (item.action === 'history') {
+            // If not on chat page, navigate there first
+            if (location.pathname !== '/chat') {
+                navigate('/chat');
+                // Open history after a short delay to ensure navigation completes
+                setTimeout(() => {
+                    openHistory();
+                }, 100);
+            } else {
+                // Already on chat page, just toggle history
+                toggleHistory();
+            }
+        } else {
+            // Regular navigation
+            navigate(item.path);
+        }
 
         if (isMobile) {
             handleToggle();
@@ -97,8 +117,12 @@ export default function Navigation({ open: controlledOpen, onToggle }: Navigatio
                 {menuItems.map((item) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton
-                            selected={location.pathname === item.path}
-                            onClick={() => handleNavigation(item.path)}
+                            selected={
+                                item.action === 'navigate'
+                                    ? location.pathname === item.path
+                                    : false
+                            }
+                            onClick={() => handleMenuItemClick(item)}
                             sx={{
                                 '&.Mui-selected': {
                                     backgroundColor: theme.palette.primary.main,
@@ -114,7 +138,7 @@ export default function Navigation({ open: controlledOpen, onToggle }: Navigatio
                         >
                             <ListItemIcon
                                 sx={{
-                                    color: location.pathname === item.path
+                                    color: (item.action === 'navigate' && location.pathname === item.path)
                                         ? theme.palette.primary.contrastText
                                         : 'inherit',
                                 }}

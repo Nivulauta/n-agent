@@ -4,6 +4,7 @@ import { Box, Typography, Button, AppBar, Toolbar, IconButton, useTheme, useMedi
 import { Menu as MenuIcon } from '@mui/icons-material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { ChatHistoryProvider } from './contexts/ChatHistoryContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Navigation, { DRAWER_WIDTH } from './components/Navigation';
 import Home from './components/Home';
@@ -93,9 +94,11 @@ function App() {
     <Router>
       <AuthProvider>
         <ChatProvider>
-          <ProtectedRoute>
-            <MainContent />
-          </ProtectedRoute>
+          <ChatHistoryProvider>
+            <ProtectedRoute>
+              <MainContent />
+            </ProtectedRoute>
+          </ChatHistoryProvider>
         </ChatProvider>
       </AuthProvider>
     </Router>
