@@ -317,6 +317,34 @@ Production Ready  ░░░░░░░░░░░░░░░░░░░░  
 - Audit logging for all chat interactions
 - Integration tests (58 tests covering end-to-end flow, RAG, caching, error handling)
 
+#### **Performance Monitoring & Metrics** (Task 18) ✓
+- CloudWatch metrics emission for all Lambda invocations
+- Custom metrics: query_latency, embedding_generation_time, search_latency
+- Bedrock token usage metrics (input_tokens, output_tokens)
+- OpenSearch query latency tracking
+- CloudWatch dashboard with key performance indicators (request rate, error rate, latency percentiles, token usage, cache hit rate, concurrent users)
+- CloudWatch alarms for response time > 2s, error rate > 5%, Bedrock throttling
+- SNS notifications for alarm triggers
+- Unit tests for metrics emission
+
+#### **REST API Gateway Configuration** (Task 19) ✓
+- REST API Gateway with resources: /auth, /documents, /chat
+- Lambda integrations for all endpoints
+- CORS configuration for browser access
+- Request/response models and validation
+- API Gateway throttling (burst=100, rate=50 req/s)
+- AWS WAF with rate-based rules
+- CloudWatch logging for API Gateway audit trail
+
+#### **Lambda Concurrency & Scaling** (Task 20) ✓
+- Reserved concurrency for WebSocket handler (100 concurrent connections)
+- Provisioned concurrency for latency-sensitive functions
+- Memory allocation: 1024MB for API handlers, 3008MB for document processing
+- Timeouts: 30s for API handlers, 300s for document processing
+- VPC networking for Lambda → OpenSearch communication
+- NAT Gateway for outbound Bedrock API calls
+- Load tests for 100 concurrent WebSocket connections and chat requests
+
 #### **Frontend React Application** (Task 21) ✓
 - React 18 with TypeScript and Vite build system
 - Material-UI component library for consistent design
@@ -452,35 +480,7 @@ Production Ready  ░░░░░░░░░░░░░░░░░░░░  
 
 **Progress: 23 of 26 tasks completed (88%)**
 
-#### **Performance Monitoring & Metrics** (Task 18) ✓
-- CloudWatch metrics emission for all Lambda invocations
-- Custom metrics: query_latency, embedding_generation_time, search_latency
-- Bedrock token usage metrics (input_tokens, output_tokens)
-- OpenSearch query latency tracking
-- CloudWatch dashboard with key performance indicators (request rate, error rate, latency percentiles, token usage, cache hit rate, concurrent users)
-- CloudWatch alarms for response time > 2s, error rate > 5%, Bedrock throttling
-- SNS notifications for alarm triggers
-- Unit tests for metrics emission
 
-#### **REST API Gateway Configuration** (Task 19) ✓
-- REST API Gateway with resources: /auth, /documents, /chat
-- Lambda integrations for all endpoints
-- CORS configuration for browser access
-- Request/response models and validation
-- API Gateway throttling (burst=100, rate=50 req/s)
-- AWS WAF with rate-based rules
-- CloudWatch logging for API Gateway audit trail
-
-#### **Lambda Concurrency & Scaling** (Task 20) ✓
-- Reserved concurrency for WebSocket handler (100 concurrent connections)
-- Provisioned concurrency for latency-sensitive functions
-- Memory allocation: 1024MB for API handlers, 3008MB for document processing
-- Timeouts: 30s for API handlers, 300s for document processing
-- VPC networking for Lambda → OpenSearch communication
-- NAT Gateway for outbound Bedrock API calls
-- Load tests for 100 concurrent WebSocket connections and chat requests
-
-#### **Frontend React Application** (Task 21) ✓
 
 See [tasks.md](.kiro/specs/aws-claude-rag-agent/tasks.md) for the complete implementation plan with detailed subtasks.
 
