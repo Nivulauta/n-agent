@@ -40,7 +40,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ sessionId, onClose }) => {
             }
 
             const response = await fetch(
-                `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.chat.history}?${params}`,
+                `${API_CONFIG.apiUrl}${API_CONFIG.endpoints.chat.history}?${params}`,
                 {
                     headers: {
                         'Authorization': `Bearer ${authToken}`,
