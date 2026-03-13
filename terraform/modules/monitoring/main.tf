@@ -134,6 +134,7 @@ resource "aws_cloudwatch_metric_alarm" "api_gateway_5xx" {
 }
 
 # CloudWatch Metric Alarm - High Response Time
+# Validates: Requirements 15.5
 resource "aws_cloudwatch_metric_alarm" "high_latency" {
   alarm_name          = "${var.environment}-chatbot-high-latency"
   comparison_operator = "GreaterThanThreshold"
@@ -155,6 +156,158 @@ resource "aws_cloudwatch_metric_alarm" "high_latency" {
   tags = {
     Name        = "${var.environment}-chatbot-high-latency-alarm"
     Environment = var.environment
+  }
+}
+
+# CloudWatch Metric Alarm - Response Time > 2 seconds
+# Validates: Requirements 15.5
+resource "aws_cloudwatch_metric_alarm" "response_time_threshold" {
+  alarm_name          = "${var.environment}-chatbot-response-time-exceeded"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "query_latency"
+  namespace           = "ChatbotMetrics"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 2000
+  alarm_description   = "Alert when average query response time exceeds 2 seconds over 3 consecutive periods"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = var.system_alerts_topic_arn != "" ? [var.system_alerts_topic_arn] : []
+
+  tags = {
+    Name        = "${var.environment}-chatbot-response-time-alarm"
+    Environment = var.environment
+    Requirement = "15.5"
+  }
+}
+
+# CloudWatch Metric Alarm - Error Rate > 5%
+# Validates: Requirements 15.5
+resource "aws_cloudwatch_metric_alarm" "high_error_rate" {
+  alarm_name          = "${var.environment}-chatbot-high-error-rate"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+
+  # Calculate error rate as percentage
+  metric_query {
+    id          = "error_rate"
+    expression  = "(errors / invocations) * 100"
+    label       = "Error Rate (%)"
+    return_data = true
+  }
+
+  metric_query {
+    id = "errors"
+    metric {
+      metric_name = "Errors"
+      namespace   = "AWS/Lambda"
+      period      = 300
+      stat        = "Sum"
+    }
+  }
+
+  metric_query {
+    id = "invocations"
+    metric {
+      metric_name = "Invocations"
+      namespace   = "AWS/Lambda"
+      period      = 300
+      stat        = "Sum"
+    }
+  }
+
+  threshold          = 5
+  alarm_description  = "Alert when Lambda error rate exceeds 5% over 2 consecutive periods"
+  treat_missing_data = "notBreaching"
+
+  alarm_actions = var.system_alerts_topic_arn != "" ? [var.system_alerts_topic_arn] : []
+
+  tags = {
+    Name        = "${var.environment}-chatbot-error-rate-alarm"
+    Environment = var.environment
+    Requirement = "15.5"
+  }
+}
+
+# CloudWatch Metric Alarm - Bedrock Throttling Errors
+# Validates: Requirements 15.5
+resource "aws_cloudwatch_metric_alarm" "bedrock_throttling" {
+  alarm_name          = "${var.environment}-chatbot-bedrock-throttling"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "BedrockThrottlingErrors"
+  namespace           = "ChatbotMetrics"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 5
+  alarm_description   = "Alert when Bedrock API throttling errors occur (more than 5 in 1 minute)"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = var.system_alerts_topic_arn != "" ? [var.system_alerts_topic_arn] : []
+
+  tags = {
+    Name        = "${var.environment}-chatbot-bedrock-throttling-alarm"
+    Environment = var.environment
+    Requirement = "15.5"
+  }
+}
+
+# CloudWatch Metric Alarm - API Gateway Error Rate > 5%
+# Validates: Requirements 15.5
+resource "aws_cloudwatch_metric_alarm" "api_gateway_error_rate" {
+  alarm_name          = "${var.environment}-chatbot-api-error-rate"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+
+  # Calculate API Gateway error rate as percentage
+  metric_query {
+    id          = "api_error_rate"
+    expression  = "((m1 + m2) / m3) * 100"
+    label       = "API Error Rate (%)"
+    return_data = true
+  }
+
+  metric_query {
+    id = "m1"
+    metric {
+      metric_name = "5XXError"
+      namespace   = "AWS/ApiGateway"
+      period      = 300
+      stat        = "Sum"
+    }
+  }
+
+  metric_query {
+    id = "m2"
+    metric {
+      metric_name = "4XXError"
+      namespace   = "AWS/ApiGateway"
+      period      = 300
+      stat        = "Sum"
+    }
+  }
+
+  metric_query {
+    id = "m3"
+    metric {
+      metric_name = "Count"
+      namespace   = "AWS/ApiGateway"
+      period      = 300
+      stat        = "Sum"
+    }
+  }
+
+  threshold          = 5
+  alarm_description  = "Alert when API Gateway error rate exceeds 5% over 2 consecutive periods"
+  treat_missing_data = "notBreaching"
+
+  alarm_actions = var.system_alerts_topic_arn != "" ? [var.system_alerts_topic_arn] : []
+
+  tags = {
+    Name        = "${var.environment}-chatbot-api-error-rate-alarm"
+    Environment = var.environment
+    Requirement = "15.5"
   }
 }
 
