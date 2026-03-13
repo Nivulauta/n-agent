@@ -1,341 +1,169 @@
-# Integration Tests
+# Integration and Performance Tests
 
-This directory contains integration tests for the AWS Claude RAG Agent system. The tests validate error handling, resilience, and end-to-end functionality against real AWS resources.
+This directory contains integration tests and performance benchmarks for the AWS Claude RAG Chatbot.
 
-## Configuration
+## Test Suites
 
-The integration tests automatically load configuration from Terraform outputs, falling back to environment variables or defaults.
+### 1. Integration Tests (`backend-integration.test.ts`)
+- Complete user flow testing
+- Document upload and processing
+- RAG query flow
+- WebSocket connection stability
 
-### Configuration Priority
+### 2. Error Resilience Tests (`error-resilience.test.ts`)
+- OpenSearch fallback behavior
+- Bedrock throttling and retry logic
+- Document processing failure handling
+- Circuit breaker activation
 
-1. **Terraform outputs** (highest priority) - Executed via `terraform output -json` command
-2. **Environment variables** - Set manually or via setup scripts
-3. **Default values** (lowest priority) - Used for local development
+### 3. Security Configuration Tests (`security-config.test.ts`)
+- S3 encryption verification
+- DynamoDB encryption verification
+- IAM role validation
+- API Gateway authentication
+- TLS configuration
 
-### Setup Methods
+### 4. Audit Logging Tests (`audit-logging.test.ts`)
+- User action logging
+- Document operation logging
+- Bedrock API call logging
+- Log retention verification
 
-#### Method 1: Automatic (Recommended)
-
-The tests automatically load configuration from Terraform state:
-
-```bash
-# Ensure Terraform has been applied
-cd terraform
-terraform apply
-
-# Run tests (configuration loaded automatically)
-cd ../lambda/tests/integration
-npm test
-```
-
-#### Method 2: Using Setup Scripts
-
-For explicit configuration loading:
-
-**Linux/macOS:**
-```bash
-# Load configuration from Terraform
-source ./setup-test-config.sh
-
-# Run tests
-npm test
-```
-
-**Windows PowerShell:**
-```powershell
-# Load configuration from Terraform
-. .\setup-test-config.ps1
-
-# Run tests
-npm test
-```
-
-#### Method 3: Manual Environment Variables
-
-Set environment variables manually:
-
-```bash
-export AWS_REGION=us-east-1
-export DOCUMENTS_BUCKET=your-documents-bucket
-export DOCUMENT_METADATA_TABLE=your-document-metadata-table
-export SESSIONS_TABLE=your-sessions-table
-export CHAT_HISTORY_TABLE=your-chat-history-table
-export RATE_LIMITS_TABLE=your-rate-limits-table
-export CONNECTIONS_TABLE=your-connections-table
-export OPENSEARCH_ENDPOINT=your-opensearch-endpoint
-export REDIS_ENDPOINT=your-redis-endpoint
-export REDIS_PORT=6379
-
-npm test
-```
-
-## Available Tests
-
-### error-resilience.test.ts
-
-Tests error handling and resilience mechanisms:
-
-- **OpenSearch Unavailable**: Validates fallback to direct LLM (Requirement 14.2)
-- **Bedrock Throttling**: Tests retry with exponential backoff (Requirement 14.3)
-- **Document Processing Failures**: Validates dead-letter queue (Requirement 14.3)
-- **Circuit Breaker**: Tests activation after 5 failures (Requirement 14.4)
-- **Graceful Degradation**: Validates reduced functionality mode (Requirement 14.5)
-
-**Run specific test suite:**
-```bash
-npm test -- error-resilience.test.ts
-```
-
-**Run specific test:**
-```bash
-npm test -- error-resilience.test.ts -t "OpenSearch Unavailable"
-```
-
-### load-concurrent-users.test.ts
-
-Tests concurrent user support and performance under load:
-
-- **100 Concurrent WebSocket Connections**: Validates Lambda scaling (Requirement 9.1)
-- **Vector Store Query Performance**: Tests concurrent query handling (Requirement 9.3)
-- **WebSocket Connection Capacity**: Validates connection stability (Requirement 9.4)
-- **50 Concurrent Chat Requests**: Tests Bedrock service capacity with response time validation (Requirement 9.5)
-
-**Run load tests:**
-```bash
-npm test -- load-concurrent-users.test.ts
-```
-
-**See detailed guide:**
-```bash
-cat LOAD_TEST_GUIDE.md
-```
-
-### e2e-user-flow.test.ts
-
-Tests complete end-to-end user flows:
-
-- **Login → Upload → Process → Query**: Complete user journey with RAG
-- **Document Search Results**: Validates document appears after processing
-- **Chat with Citations**: Tests chat responses include document citations
-- **WebSocket Stability**: Tests connection persistence over extended sessions
-
-**Run E2E tests:**
-```bash
-npm test -- e2e-user-flow.test.ts
-```
-
-### security-verification.test.ts
-
-Tests security configurations and compliance:
-
-- **S3 Encryption**: Validates encryption at rest
-- **DynamoDB Encryption**: Validates table encryption
-- **IAM Least Privilege**: Tests role permissions
-- **API Gateway Authentication**: Validates authentication requirements
-- **TLS Configuration**: Tests encryption in transit
-
-**Run security tests:**
-```bash
-npm test -- security-verification.test.ts
-```
-
-### audit-logging-verification.test.ts
-
-Tests audit logging completeness:
-
-- **User Action Logging**: Validates all user actions are logged
-- **Document Operation Logging**: Tests document upload/delete logging
-- **Bedrock API Call Logging**: Validates API call logging
-- **Log Retention**: Tests 365-day retention configuration
-
-**Run audit tests:**
-```bash
-npm test -- audit-logging-verification.test.ts
-```
-
-## Configuration Reference
-
-### Required Configuration
-
-These values must be set (via Terraform, environment variables, or defaults):
-
-| Variable | Terraform Output | Description |
-|----------|------------------|-------------|
-| `AWS_REGION` | N/A | AWS region (default: us-east-1) |
-| `DOCUMENTS_BUCKET` | `s3_documents_bucket_name` | S3 bucket for documents |
-| `DOCUMENT_METADATA_TABLE` | `dynamodb_document_metadata_table_name` | DynamoDB table for document metadata |
-| `SESSIONS_TABLE` | `dynamodb_sessions_table_name` | DynamoDB table for user sessions |
-| `CHAT_HISTORY_TABLE` | `dynamodb_chat_history_table_name` | DynamoDB table for chat history |
-
-### Optional Configuration
-
-These values enhance test coverage but are not required:
-
-| Variable | Terraform Output | Description | Default |
-|----------|------------------|-------------|---------|
-| `RATE_LIMITS_TABLE` | `dynamodb_rate_limits_table_name` | DynamoDB table for rate limiting | chatbot-rate-limits |
-| `CONNECTIONS_TABLE` | `dynamodb_connections_table_name` | DynamoDB table for WebSocket connections | chatbot-connections |
-| `OPENSEARCH_ENDPOINT` | `opensearch_endpoint` | OpenSearch cluster endpoint | localhost:9200 |
-| `REDIS_ENDPOINT` | `redis_endpoint` | Redis cache endpoint | localhost:6379 |
-| `REDIS_PORT` | `redis_port` | Redis port | 6379 |
-| `REST_API_URL` | `rest_api_url` | REST API Gateway URL | http://localhost:3000 |
-| `WEBSOCKET_API_URL` | `websocket_stage_url` | WebSocket API URL | ws://localhost:3001 |
-| `KMS_KEY_ARN` | `kms_key_arn` | KMS key for encryption | (empty) |
-| `TEST_TIMEOUT` | N/A | Test timeout in milliseconds | 60000 |
+### 5. Performance Benchmarks (`performance-benchmarks.test.ts`)
+- Query response time (with/without RAG)
+- Document processing time
+- Vector store query latency
+- Cache hit rate
 
 ## Running Tests
 
-### Run All Tests
+### Install Dependencies
+```bash
+npm install
+```
 
+### Run All Tests
 ```bash
 npm test
 ```
 
-### Run Specific Test File
-
+### Run Specific Test Suite
 ```bash
-npm test -- error-resilience.test.ts
+npm run test:error-resilience
+npm run test:performance
 ```
 
 ### Run with Verbose Output
-
 ```bash
-npm test -- --reporter=verbose
+npm run test:verbose
 ```
 
-### Run with Coverage
+## Configuration
 
-```bash
-npm test -- --coverage
+Tests automatically load configuration from:
+1. **Terraform outputs** (preferred): `terraform output -json`
+2. **Environment variables**: Manual configuration
+3. **Defaults**: Local development values
+
+### Required AWS Resources
+- Bedrock access (Claude Haiku 4.5, Titan Embeddings)
+- S3 bucket for documents
+- DynamoDB tables (Sessions, ChatHistory, DocumentMetadata, RateLimits)
+- OpenSearch cluster (optional for local testing)
+- Valid AWS credentials
+
+## OpenSearch Connectivity
+
+⚠️ **Important**: OpenSearch is deployed in a private VPC subnet for security.
+
+### When Running Locally
+
+You will see warnings like:
+```
+⚠ OpenSearch not accessible (tests will skip OpenSearch operations)
+⚠ RAG query test failed: connect ETIMEDOUT 10.0.x.x:443
 ```
 
-### Watch Mode (for development)
+**This is expected and normal.** Tests will automatically skip OpenSearch-dependent operations.
 
+### Tests That Work Locally (without OpenSearch)
+- ✅ Benchmark 1: Query Response Time Without RAG
+- ✅ Benchmark 3: Document Processing Time
+- ✅ Benchmark 5: Cache Hit Rate
+- ✅ Most integration tests (with degraded functionality)
+
+### Tests That Require OpenSearch Access
+- ⚠️ Benchmark 2: Query Response Time With RAG
+- ⚠️ Benchmark 4: Vector Store Query Latency
+- ⚠️ RAG-specific integration tests
+
+### Running Full Tests (with OpenSearch)
+
+To run tests that require OpenSearch access:
+
+**Option 1: EC2 Instance in VPC** (Recommended)
 ```bash
-npm test -- --watch
+# Launch EC2 in same VPC as OpenSearch
+# SSH or use Session Manager to connect
+# Install Node.js and dependencies
+cd lambda/tests/integration
+npm install
+npm test
 ```
 
-## Test Data Cleanup
+**Option 2: VPN Connection**
+- Set up VPN to the VPC
+- Run tests through VPN connection
 
-Tests automatically clean up test data in `afterAll` hooks. However, if tests fail unexpectedly, you may need to manually clean up:
+**Option 3: AWS Systems Manager Session Manager**
+- Use Session Manager to connect to EC2
+- Run tests through the session
 
-### DynamoDB Cleanup
+## Test Output
 
-```bash
-# List test items
-aws dynamodb scan \
-  --table-name your-document-metadata-table \
-  --filter-expression "begins_with(PK, :prefix)" \
-  --expression-attribute-values '{":prefix":{"S":"test-"}}'
+Tests provide detailed output including:
+- ✅ Passed tests with metrics
+- ⚠️ Warnings for skipped operations
+- ❌ Failed tests with error details
+- 📊 Performance statistics (min/max/avg/p95/p99)
 
-# Delete specific test item
-aws dynamodb delete-item \
-  --table-name your-document-metadata-table \
-  --key '{"PK":{"S":"test-doc-123"},"SK":{"S":"METADATA"}}'
-```
+## Cost Considerations
 
-### S3 Cleanup
-
-```bash
-# List test objects
-aws s3 ls s3://your-documents-bucket/uploads/ --recursive | grep test-
-
-# Delete test objects
-aws s3 rm s3://your-documents-bucket/uploads/test-doc-123/ --recursive
-aws s3 rm s3://your-documents-bucket/failed/test-doc-123/ --recursive
-```
+Running the full test suite costs approximately **< $1.00**:
+- Bedrock API calls: ~$0.001 per 1K tokens
+- Bedrock embeddings: ~$0.0001 per 1K tokens
+- S3/DynamoDB operations: Minimal
+- OpenSearch queries: Included in cluster cost
 
 ## Troubleshooting
 
-### ResourceNotFoundException
-
-**Problem:** DynamoDB table or S3 bucket doesn't exist
-
-**Solution:**
-1. Verify Terraform has been applied: `cd terraform && terraform apply`
-2. Check table/bucket names match Terraform outputs: `terraform output`
-3. Verify AWS credentials have access to resources
-
-### AccessDenied
-
-**Problem:** Insufficient IAM permissions
-
-**Solution:**
-1. Verify AWS credentials are configured: `aws sts get-caller-identity`
-2. Check IAM policies allow DynamoDB and S3 access
-3. Ensure bucket policies and table policies allow access
-
-### Test Timeouts
-
-**Problem:** Tests exceed timeout limit
-
-**Solution:**
-1. Increase timeout: `export TEST_TIMEOUT=120000` (2 minutes)
-2. Check network connectivity to AWS
-3. Verify AWS services are responding
-
-### Configuration Not Loading
-
-**Problem:** Tests use default values instead of Terraform outputs
-
-**Solution:**
-1. Verify terraform.tfstate exists: `ls terraform/terraform.tfstate`
-2. Check Terraform outputs are populated: `cd terraform && terraform output`
-3. Run setup script explicitly: `source ./setup-test-config.sh`
-4. Check for errors in test output
-
-## CI/CD Integration
-
-### GitHub Actions Example
-
-```yaml
-name: Integration Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install Dependencies
-        run: |
-          cd lambda/tests/integration
-          npm install
-      
-      - name: Run Integration Tests
-        run: |
-          cd lambda/tests/integration
-          npm test
+### "Cannot find module" errors
+```bash
+npm install
 ```
 
-## Best Practices
+### "AWS credentials not found"
+```bash
+aws configure
+# or
+export AWS_PROFILE=your-profile
+```
 
-1. **Always run tests against a test/staging environment**, never production
-2. **Use separate AWS accounts** for testing to avoid accidental data modification
-3. **Run tests before deploying** to catch integration issues early
-4. **Monitor test execution time** and optimize slow tests
-5. **Review test data cleanup** to avoid accumulating test artifacts
-6. **Keep test data isolated** using unique identifiers (timestamps, UUIDs)
+### "Terraform outputs not found"
+Set environment variables manually:
+```bash
+export AWS_REGION=us-east-2
+export DOCUMENTS_BUCKET=your-bucket-name
+export SESSIONS_TABLE=your-sessions-table
+# ... etc
+```
 
-## Support
+### OpenSearch timeout errors
+This is expected when running locally. See "OpenSearch Connectivity" section above.
 
-For issues or questions:
-1. Check the troubleshooting section above
-2. Review test output for specific error messages
-3. Verify AWS resource configuration in Terraform
-4. Check CloudWatch logs for Lambda execution errors
+## Related Documentation
+
+- [Performance Benchmarks Guide](./PERFORMANCE_BENCHMARKS.md)
+- [Requirements Document](../../.kiro/specs/aws-claude-rag-agent/requirements.md)
+- [Design Document](../../.kiro/specs/aws-claude-rag-agent/design.md)
+- [Main README](../../../README.md)
