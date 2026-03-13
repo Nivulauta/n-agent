@@ -19,12 +19,18 @@ import { AuthProvider } from '../contexts/AuthContext';
 
 // Mock the WebSocketManager module
 vi.mock('../utils/websocket', () => {
+    interface MockConfig {
+        onMessage: (message: unknown) => void;
+        onStateChange: (state: string) => void;
+        token: string;
+    }
+
     return {
         WebSocketManager: class MockWebSocketManager {
-            private onMessage: ((message: any) => void) | null = null;
+            private onMessage: ((message: unknown) => void) | null = null;
             private onStateChange: ((state: string) => void) | null = null;
 
-            constructor(config: any) {
+            constructor(config: MockConfig) {
                 this.onMessage = config.onMessage;
                 this.onStateChange = config.onStateChange;
                 // Store token but don't need to use it in mock
@@ -44,16 +50,16 @@ vi.mock('../utils/websocket', () => {
                 }
             }
 
-            send(_message: any) {
+            send() {
                 // Mock send - do nothing for this test
             }
 
-            updateToken(_token: string) {
+            updateToken() {
                 // Mock implementation - token updated but not used in tests
             }
 
             // Expose method to simulate receiving messages (for testing)
-            simulateMessage(message: any) {
+            simulateMessage(message: unknown) {
                 if (this.onMessage) {
                     this.onMessage(message);
                 }
@@ -106,7 +112,7 @@ describe('Chat Component - Property-Based Tests', () => {
                     fc.string({ minLength: 1, maxLength: 100 })
                         .filter(s => s.trim().length > 0)
                         .map(s => s.trim()) // Trim to match UI behavior
-                        .filter(s => !/[\[\]{}\/\\]/.test(s)), // Exclude [, ], {, }, /, \ which are keyboard shortcuts
+                        .filter(s => !/[[\]{}/\\]/.test(s)), // Exclude [, ], {, }, /, \ which are keyboard shortcuts
 
                     async (messageContent) => {
                         // Setup: Render the Chat component
@@ -184,7 +190,7 @@ describe('Chat Component - Property-Based Tests', () => {
                         fc.string({ minLength: 1, maxLength: 50 })
                             .filter(s => s.trim().length > 0)
                             .filter(s => s === s.trim()) // Exclude strings with leading/trailing whitespace
-                            .filter(s => !/[\[\]{}\/\\]/.test(s)), // Exclude [, ], {, }, /, \ which are keyboard shortcuts
+                            .filter(s => !/[[\]{}/\\]/.test(s)), // Exclude [, ], {, }, /, \ which are keyboard shortcuts
                         { minLength: 2, maxLength: 2 }
                     ),
 
@@ -265,15 +271,18 @@ describe('Chat Component - Property-Based Tests', () => {
                         // Short messages (1-20 chars)
                         fc.string({ minLength: 1, maxLength: 20 })
                             .filter(s => s.trim().length > 0)
-                            .filter(s => !/[\[\]{}\/\\]/.test(s)),
+                            .map(s => s.trim())
+                            .filter(s => !/[[\]{}/\\]/.test(s)),
                         // Medium messages (30-60 chars)
                         fc.string({ minLength: 30, maxLength: 60 })
                             .filter(s => s.trim().length > 0)
-                            .filter(s => !/[\[\]{}\/\\]/.test(s)),
+                            .map(s => s.trim())
+                            .filter(s => !/[[\]{}/\\]/.test(s)),
                         // Long messages (80-120 chars)
                         fc.string({ minLength: 80, maxLength: 120 })
                             .filter(s => s.trim().length > 0)
-                            .filter(s => !/[\[\]{}\/\\]/.test(s))
+                            .map(s => s.trim())
+                            .filter(s => !/[[\]{}/\\]/.test(s))
                     ),
 
                     async (messageContent) => {
@@ -634,7 +643,8 @@ describe('Chat Component - Property-Based Tests', () => {
                     // Generate arbitrary query content
                     fc.string({ minLength: 1, maxLength: 100 })
                         .filter(s => s.trim().length > 0)
-                        .filter(s => !/[\[\]{}\/\\]/.test(s)), // Exclude keyboard shortcuts
+                        .map(s => s.trim())
+                        .filter(s => !/[[\]{}/\\]/.test(s)), // Exclude keyboard shortcuts
 
                     async (queryContent) => {
                         // Setup: Render the Chat component
@@ -712,7 +722,8 @@ describe('Chat Component - Property-Based Tests', () => {
                     fc.array(
                         fc.string({ minLength: 1, maxLength: 50 })
                             .filter(s => s.trim().length > 0)
-                            .filter(s => !/[\[\]{}\/\\]/.test(s)),
+                            .map(s => s.trim())
+                            .filter(s => !/[[\]{}/\\]/.test(s)),
                         { minLength: 2, maxLength: 3 }
                     ),
 
@@ -779,15 +790,18 @@ describe('Chat Component - Property-Based Tests', () => {
                         // Short queries
                         fc.string({ minLength: 1, maxLength: 20 })
                             .filter(s => s.trim().length > 0)
-                            .filter(s => !/[\[\]{}\/\\]/.test(s)),
+                            .map(s => s.trim())
+                            .filter(s => !/[[\]{}/\\]/.test(s)),
                         // Medium queries
                         fc.string({ minLength: 30, maxLength: 80 })
                             .filter(s => s.trim().length > 0)
-                            .filter(s => !/[\[\]{}\/\\]/.test(s)),
+                            .map(s => s.trim())
+                            .filter(s => !/[[\]{}/\\]/.test(s)),
                         // Long queries
                         fc.string({ minLength: 100, maxLength: 200 })
                             .filter(s => s.trim().length > 0)
-                            .filter(s => !/[\[\]{}\/\\]/.test(s))
+                            .map(s => s.trim())
+                            .filter(s => !/[[\]{}/\\]/.test(s))
                     ),
 
                     async (queryContent) => {
@@ -852,7 +866,8 @@ describe('Chat Component - Property-Based Tests', () => {
                     // Generate query content
                     fc.string({ minLength: 1, maxLength: 50 })
                         .filter(s => s.trim().length > 0)
-                        .filter(s => !/[\[\]{}\/\\]/.test(s)),
+                        .map(s => s.trim())
+                        .filter(s => !/[[\]{}/\\]/.test(s)),
 
                     async (queryContent) => {
                         // Setup: Render the Chat component
@@ -910,3 +925,6 @@ describe('Chat Component - Property-Based Tests', () => {
         });
     });
 });
+
+
+

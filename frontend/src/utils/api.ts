@@ -41,7 +41,7 @@ export const createApiClient = (token?: string): AxiosInstance => {
             if (error.response) {
                 // Server responded with error status
                 const status = error.response.status;
-                const data = error.response.data as any;
+                const data = error.response.data as Record<string, unknown>;
 
                 switch (status) {
                     case 401:
@@ -49,20 +49,20 @@ export const createApiClient = (token?: string): AxiosInstance => {
                         clearStoredToken();
                         window.location.href = '/login';
                         break;
-                    case 429:
+                    case 429: {
                         // Rate limit exceeded
                         const retryAfter = error.response.headers['retry-after'];
                         throw new Error(
                             `Rate limit exceeded. Please try again in ${retryAfter || 60} seconds.`
                         );
-                    case 500:
+                    } case 500:
                     case 502:
                     case 503:
                     case 504:
                         // Server error
                         throw new Error('Server error. Please try again later.');
                     default:
-                        throw new Error(data?.message || 'An error occurred');
+                        throw new Error(typeof data?.message === 'string' ? data.message : 'An error occurred');
                 }
             } else if (error.request) {
                 // Request made but no response received

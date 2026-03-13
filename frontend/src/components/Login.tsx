@@ -42,23 +42,24 @@ export const Login: React.FC = () => {
 
         try {
             await login({ username: username.trim(), password });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Login error:', err);
 
             // Handle different error types
-            if (err.response) {
+            if (err && typeof err === 'object' && 'response' in err) {
+                const error = err as { response?: { data?: { message?: string }; status?: number }; request?: unknown };
                 // Server responded with error
-                const status = err.response.status;
+                const status = error.response?.status;
                 if (status === 401) {
                     setError('Invalid username or password');
                 } else if (status === 429) {
                     setError('Too many login attempts. Please try again later.');
-                } else if (status >= 500) {
+                } else if (status && status >= 500) {
                     setError('Server error. Please try again later.');
                 } else {
-                    setError(err.response.data?.message || 'Login failed');
+                    setError(error.response?.data?.message || 'Login failed');
                 }
-            } else if (err.request) {
+            } else if (err && typeof err === 'object' && 'request' in err) {
                 // Request made but no response
                 setError('Unable to connect to server. Please check your connection.');
             } else {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useChatContext } from '../contexts/ChatContext';
 import { API_CONFIG } from '../config/api';
@@ -19,11 +19,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ sessionId, onClose }) => {
     const [nextToken, setNextToken] = useState<string | undefined>();
     const [hasMore, setHasMore] = useState(true);
 
-    useEffect(() => {
-        loadHistory();
-    }, [sessionId]);
-
-    const loadHistory = async (paginationToken?: string) => {
+    const loadHistory = useCallback(async (paginationToken?: string) => {
         if (paginationToken && !hasMore) return;
 
         setLoading(true);
@@ -64,7 +60,11 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ sessionId, onClose }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sessionId, authToken, hasMore]);
+
+    useEffect(() => {
+        loadHistory();
+    }, [loadHistory]);
 
     const loadMore = () => {
         if (nextToken && !loading) {

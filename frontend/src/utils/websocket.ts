@@ -101,7 +101,7 @@ export class WebSocketManager {
     /**
      * Send message to server
      */
-    send(message: any): void {
+    send(message: Record<string, unknown>): void {
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
         } else {

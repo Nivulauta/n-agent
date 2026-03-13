@@ -14,16 +14,23 @@ export interface AppError {
 /**
  * Parse error from various sources into a standardized AppError
  */
-export const parseError = (error: any): AppError => {
+export const parseError = (error: unknown): AppError => {
     // Already an AppError
-    if (error.code && error.message && typeof error.retryable === 'boolean') {
+    if (error && typeof error === 'object' && 'code' in error && 'message' in error && 'retryable' in error) {
         return error as AppError;
     }
 
     // Axios error with response
-    if (error.response) {
-        const status = error.response.status;
-        const data = error.response.data;
+    if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as {
+            response?: {
+                status?: number;
+                data?: { message?: string; code?: string };
+                headers?: Record<string, string>;
+            }
+        };
+        const status = axiosError.response?.status;
+        const data = axiosError.response?.data;
 
         if (status === 401) {
             return {
@@ -34,7 +41,7 @@ export const parseError = (error: any): AppError => {
         }
 
         if (status === 429) {
-            const retryAfter = parseInt(error.response.headers['retry-after'] || '60', 10);
+            const retryAfter = parseInt(axiosError.response?.headers?.['retry-after'] || '60', 10);
             return {
                 code: 'RATE_LIMIT_EXCEEDED',
                 message: `Rate limit exceeded. Please wait ${retryAfter} seconds.`,
@@ -43,7 +50,7 @@ export const parseError = (error: any): AppError => {
             };
         }
 
-        if (status >= 500) {
+        if (status && status >= 500) {
             return {
                 code: 'SERVER_ERROR',
                 message: data?.message || 'Server error. Please try again later.',
@@ -51,7 +58,7 @@ export const parseError = (error: any): AppError => {
             };
         }
 
-        if (status >= 400) {
+        if (status && status >= 400) {
             return {
                 code: data?.code || 'CLIENT_ERROR',
                 message: data?.message || 'Request failed. Please try again.',
@@ -61,7 +68,7 @@ export const parseError = (error: any): AppError => {
     }
 
     // Network error
-    if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+    if (error && typeof error === 'object' && 'code' in error && (error.code === 'ECONNABORTED' || (('message' in error) && error.message === 'Network Error'))) {
         return {
             code: 'NETWORK_ERROR',
             message: 'Network error. Please check your connection.',
@@ -70,11 +77,12 @@ export const parseError = (error: any): AppError => {
     }
 
     // WebSocket error
-    if (error.type === 'error' && error.data) {
+    if (error && typeof error === 'object' && 'type' in error && error.type === 'error' && 'data' in error) {
+        const wsError = error as { data?: { code?: string; message?: string; retryable?: boolean } };
         return {
-            code: error.data.code || 'WEBSOCKET_ERROR',
-            message: error.data.message || 'WebSocket error occurred.',
-            retryable: error.data.retryable ?? true
+            code: wsError.data?.code || 'WEBSOCKET_ERROR',
+            message: wsError.data?.message || 'WebSocket error occurred.',
+            retryable: wsError.data?.retryable ?? true
         };
     }
 
@@ -117,7 +125,7 @@ export const getErrorMessage = (code: string, defaultMessage?: string): string =
 /**
  * Check if error is retryable
  */
-export const isRetryableError = (error: any): boolean => {
+export const isRetryableError = (error: unknown): boolean => {
     const appError = parseError(error);
     return appError.retryable;
 };

@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const interval = setInterval(checkTokenExpiration, 60000);
 
         return () => clearInterval(interval);
-    }, [authState.isAuthenticated]);
+    }, [authState.isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const login = async (credentials: UserCredentials): Promise<void> => {
         try {
@@ -190,6 +190,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (context === undefined) {

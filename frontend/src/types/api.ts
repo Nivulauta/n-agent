@@ -70,7 +70,7 @@ export interface DocumentChunk {
     pageNumber: number;
     text: string;
     score: number;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 export interface ChatHistoryResponse {
@@ -81,7 +81,7 @@ export interface ChatHistoryResponse {
 // WebSocket message types
 export interface WebSocketMessage {
     type: 'chat_response' | 'typing_indicator' | 'error' | 'system' | 'rag_context';
-    payload: any;
+    payload: unknown;
 }
 
 export interface ChatResponseMessage extends WebSocketMessage {

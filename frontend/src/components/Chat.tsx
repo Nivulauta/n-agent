@@ -27,7 +27,7 @@ interface ChatProps {
     websocketUrl: string;
 }
 
-const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocketUrl }) => {
+const Chat: React.FC<ChatProps> = ({ token, sessionId, websocketUrl }) => {
     // Use chat context for persistent state
     const { chatState, updateMessages } = useChatContext();
     const { logout } = useAuth();
@@ -37,7 +37,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
     const [connectionState, setConnectionState] = useState<WebSocketConnectionState>('disconnected');
     const [wsManager, setWsManager] = useState<WebSocketManager | null>(null);
     const currentMessageIdRef = useRef<string | null>(null);
-    const currentRAGChunksRef = useRef<any[] | undefined>(undefined);
+    const currentRAGChunksRef = useRef<DocumentChunk[] | undefined>(undefined);
     const streamingMessageIndexRef = useRef<number | null>(null);
     const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
     const [rateLimitError, setRateLimitError] = useState<number | null>(null);
@@ -52,118 +52,8 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
         console.log('====================================');
     }, [messageRAGChunks]);
 
-    // Initialize WebSocket connection
-    useEffect(() => {
-        console.log('WebSocket useEffect triggered');
-        console.log('Initializing WebSocket connection to:', websocketUrl);
-        console.log('Token value:', token);
-        console.log('Token length:', token?.length);
-
-        // Verify token is fresh from localStorage
-        const storedToken = localStorage.getItem('chatbot_session_token');
-        if (storedToken) {
-            const parsed = JSON.parse(storedToken);
-            console.log('Token from localStorage:', parsed.token.substring(0, 20) + '...');
-            console.log('Token from prop:', token?.substring(0, 20) + '...');
-            console.log('Tokens match:', parsed.token === token);
-        }
-
-        let manager: WebSocketManager | null = null;
-
-        // Add a small delay before connecting to ensure session is propagated
-        // This prevents 403 errors when navigating to chat immediately after login
-        // or when switching between views
-        const connectionTimer = setTimeout(() => {
-            manager = new WebSocketManager({
-                url: websocketUrl,
-                token,
-                onMessage: handleWebSocketMessage,
-                onStateChange: (state) => {
-                    console.log('WebSocket state changed to:', state);
-                    setConnectionState(state);
-
-                    // Clear error when connection succeeds
-                    if (state === 'connected') {
-                        setError(null);
-                        setReconnectInfo(null);
-                    }
-
-                    // Don't show error on initial connection failure - let auto-retry handle it
-                    // Only show error if we're in error state and have exhausted retries
-                    if (state === 'error') {
-                        // Error will be shown via reconnectInfo if retries are exhausted
-                        console.log('WebSocket error state - auto-retry will attempt reconnection');
-                    }
-                },
-                onReconnectAttempt: (attempt, maxAttempts, delay) => {
-                    console.log(`Reconnection attempt ${attempt}/${maxAttempts}, delay: ${delay}ms`);
-                    setReconnectInfo({ attempt, maxAttempts, delay });
-
-                    // Only show error if we've exhausted all retry attempts
-                    if (attempt >= maxAttempts) {
-                        setError({
-                            message: 'Failed to connect to chat server after multiple attempts. Please check your connection and try again.',
-                            retryable: true
-                        });
-                    }
-                },
-                onAuthFailure: () => {
-                    console.error('WebSocket authentication failed - session expired');
-                    setError({
-                        message: 'Your session has expired. Please log in again.',
-                        retryable: false
-                    });
-                    // Trigger logout to clear expired session
-                    logout();
-                }
-            });
-
-            manager.connect();
-            setWsManager(manager);
-        }, 300); // 300ms delay to ensure session propagation
-
-        return () => {
-            console.log('Cleaning up WebSocket connection');
-            clearTimeout(connectionTimer);
-            if (manager) {
-                manager.disconnect();
-            }
-        };
-    }, [websocketUrl, token]);
-
-    // Update WebSocket token when it changes (e.g., after session timeout/re-login)
-    useEffect(() => {
-        if (wsManager && token) {
-            console.log('Token changed, updating WebSocket manager');
-            wsManager.updateToken(token);
-        }
-    }, [token, wsManager]);
-
-    // Handle incoming WebSocket messages
-    const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
-        console.log('Received WebSocket message:', message);
-
-        try {
-            switch (message.type) {
-                case 'chat_response':
-                    handleChatResponse(message as ChatResponseMessage);
-                    break;
-                case 'typing_indicator':
-                    handleTypingIndicator(message as TypingIndicatorMessage);
-                    break;
-                case 'error':
-                    handleError(message as ErrorMessageType);
-                    break;
-                default:
-                    console.log('Unknown message type:', message);
-            }
-        } catch (error) {
-            console.error('Error handling WebSocket message:', error, message);
-        }
-    }, []);
-
     // Handle chat response (streaming)
-    const handleChatResponse = (message: ChatResponseMessage) => {
+    const handleChatResponse = useCallback((message: ChatResponseMessage) => {
         // Add safety check for message.payload
         if (!message.payload) {
             console.error('Chat response missing payload:', message);
@@ -370,15 +260,15 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
 
             console.log('Finalized streaming message');
         }
-    };
+    }, [updateMessages]);
 
     // Handle typing indicator
-    const handleTypingIndicator = (message: TypingIndicatorMessage) => {
+    const handleTypingIndicator = useCallback((message: TypingIndicatorMessage) => {
         setIsTyping(message.payload.isTyping);
-    };
+    }, []);
 
     // Handle error messages
-    const handleError = (message: ErrorMessageType) => {
+    const handleError = useCallback((message: ErrorMessageType) => {
         const appError = parseError(message.payload);
 
         // Check if it's a connection expired error - force reconnection
@@ -410,7 +300,117 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
         }
 
         setIsTyping(false);
-    };
+    }, [wsManager]);
+
+    // Handle incoming WebSocket messages
+    const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
+        console.log('Received WebSocket message:', message);
+
+        try {
+            switch (message.type) {
+                case 'chat_response':
+                    handleChatResponse(message as ChatResponseMessage);
+                    break;
+                case 'typing_indicator':
+                    handleTypingIndicator(message as TypingIndicatorMessage);
+                    break;
+                case 'error':
+                    handleError(message as ErrorMessageType);
+                    break;
+                default:
+                    console.log('Unknown message type:', message);
+            }
+        } catch (error) {
+            console.error('Error handling WebSocket message:', error, message);
+        }
+    }, [handleChatResponse, handleTypingIndicator, handleError]);
+
+    // Initialize WebSocket connection
+    useEffect(() => {
+        console.log('WebSocket useEffect triggered');
+        console.log('Initializing WebSocket connection to:', websocketUrl);
+        console.log('Token value:', token);
+        console.log('Token length:', token?.length);
+
+        // Verify token is fresh from localStorage
+        const storedToken = localStorage.getItem('chatbot_session_token');
+        if (storedToken) {
+            const parsed = JSON.parse(storedToken);
+            console.log('Token from localStorage:', parsed.token.substring(0, 20) + '...');
+            console.log('Token from prop:', token?.substring(0, 20) + '...');
+            console.log('Tokens match:', parsed.token === token);
+        }
+
+        let manager: WebSocketManager | null = null;
+
+        // Add a small delay before connecting to ensure session is propagated
+        // This prevents 403 errors when navigating to chat immediately after login
+        // or when switching between views
+        const connectionTimer = setTimeout(() => {
+            manager = new WebSocketManager({
+                url: websocketUrl,
+                token,
+                onMessage: handleWebSocketMessage,
+                onStateChange: (state) => {
+                    console.log('WebSocket state changed to:', state);
+                    setConnectionState(state);
+
+                    // Clear error when connection succeeds
+                    if (state === 'connected') {
+                        setError(null);
+                        setReconnectInfo(null);
+                    }
+
+                    // Don't show error on initial connection failure - let auto-retry handle it
+                    // Only show error if we're in error state and have exhausted retries
+                    if (state === 'error') {
+                        // Error will be shown via reconnectInfo if retries are exhausted
+                        console.log('WebSocket error state - auto-retry will attempt reconnection');
+                    }
+                },
+                onReconnectAttempt: (attempt, maxAttempts, delay) => {
+                    console.log(`Reconnection attempt ${attempt}/${maxAttempts}, delay: ${delay}ms`);
+                    setReconnectInfo({ attempt, maxAttempts, delay });
+
+                    // Only show error if we've exhausted all retry attempts
+                    if (attempt >= maxAttempts) {
+                        setError({
+                            message: 'Failed to connect to chat server after multiple attempts. Please check your connection and try again.',
+                            retryable: true
+                        });
+                    }
+                },
+                onAuthFailure: () => {
+                    console.error('WebSocket authentication failed - session expired');
+                    setError({
+                        message: 'Your session has expired. Please log in again.',
+                        retryable: false
+                    });
+                    // Trigger logout to clear expired session
+                    logout();
+                }
+            });
+
+            manager.connect();
+            setWsManager(manager);
+        }, 300); // 300ms delay to ensure session propagation
+
+        return () => {
+            console.log('Cleaning up WebSocket connection');
+            clearTimeout(connectionTimer);
+            if (manager) {
+                manager.disconnect();
+            }
+        };
+    }, [websocketUrl, token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Update WebSocket token when it changes (e.g., after session timeout/re-login)
+    useEffect(() => {
+        if (wsManager && token) {
+            console.log('Token changed, updating WebSocket manager');
+            wsManager.updateToken(token);
+        }
+    }, [token, wsManager]);
 
     // Send message (optimistic UI update)
     const handleSendMessage = useCallback((content: string) => {
@@ -458,7 +458,7 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
                 retryable: true
             });
         }
-    }, [wsManager, connectionState, sessionId]);
+    }, [wsManager, connectionState, sessionId, updateMessages]);
 
     return (
         <div className="chat-container">

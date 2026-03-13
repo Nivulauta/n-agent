@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Paper, IconButton, Tooltip } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import Chat from './Chat';
@@ -11,8 +11,8 @@ export default function ChatView() {
     const { user, token } = useAuth();
     const { isHistoryOpen, toggleHistory, closeHistory } = useChatHistory();
 
-    // Generate a session ID for the chat
-    const sessionId = user?.sessionId || `session-${Date.now()}`;
+    // Generate a session ID for the chat (use user's sessionId or generate one)
+    const [sessionId] = useState(() => user?.sessionId || `session-${Date.now()}`);
 
     // Close history when leaving the chat view
     useEffect(() => {
