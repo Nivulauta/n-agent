@@ -91,7 +91,7 @@ export const getUserContext = (): UserContext | null => {
 /**
  * Get authorization header for API requests
  */
-export const getAuthHeader = (): { Authorization: string } | {} => {
+export const getAuthHeader = (): { Authorization: string } | Record<string, never> => {
     const token = getToken();
     if (!token) return {};
 

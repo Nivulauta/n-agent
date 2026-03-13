@@ -27,13 +27,13 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-    const [chatState, setChatState] = useState<ChatState>({
+    const [chatState, setChatState] = useState<ChatState>(() => ({
         messages: [],
         inputText: '',
         isConnected: false,
         isTyping: false,
         sessionId: `session-${Date.now()}`,
-    });
+    }));
 
     const updateMessages = (messages: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
         if (typeof messages === 'function') {
@@ -88,6 +88,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useChatContext() {
     const context = useContext(ChatContext);
     if (context === undefined) {

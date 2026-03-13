@@ -39,6 +39,7 @@ export function ChatHistoryProvider({ children }: { children: ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useChatHistory() {
     const context = useContext(ChatHistoryContext);
     if (context === undefined) {

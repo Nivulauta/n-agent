@@ -49,7 +49,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }
         }
-    }, [messages.length]); // Only trigger on message count change, not content updates
+    }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Continuously scroll during streaming to keep new content visible
     useEffect(() => {
