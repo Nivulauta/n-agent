@@ -381,6 +381,24 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
     const handleError = (message: ErrorMessageType) => {
         const appError = parseError(message.payload);
 
+        // Check if it's a connection expired error - force reconnection
+        if (appError.code === 'UNAUTHORIZED' && appError.message.includes('Connection not found or expired')) {
+            console.log('Connection expired - forcing WebSocket reconnection');
+            setError({ message: appError.message, retryable: true });
+            setRateLimitError(null);
+            setIsTyping(false);
+
+            // Force WebSocket reconnection by disconnecting and reconnecting
+            if (wsManager) {
+                wsManager.disconnect();
+                // Small delay before reconnecting to ensure clean disconnect
+                setTimeout(() => {
+                    wsManager.connect();
+                }, 500);
+            }
+            return;
+        }
+
         // Check if it's a rate limit error
         if (appError.code === 'RATE_LIMIT_EXCEEDED' && appError.retryAfter) {
             setRateLimitError(appError.retryAfter);
@@ -472,9 +490,19 @@ const Chat: React.FC<ChatProps> = ({ token, userId: _userId, sessionId, websocke
                     retryable={error.retryable}
                     onRetry={() => {
                         setError(null);
-                        // Optionally trigger reconnection if it's a connection error
-                        if (connectionState !== 'connected' && wsManager) {
-                            wsManager.connect();
+                        // Force reconnection for connection expired errors or when disconnected
+                        if (wsManager) {
+                            if (connectionState !== 'connected') {
+                                wsManager.connect();
+                            } else if (error.message.includes('Connection not found or expired')) {
+                                // Connection is technically open but expired on server side
+                                // Force reconnection by disconnecting and reconnecting
+                                console.log('Retry clicked for expired connection - forcing reconnection');
+                                wsManager.disconnect();
+                                setTimeout(() => {
+                                    wsManager.connect();
+                                }, 500);
+                            }
                         }
                     }}
                     onDismiss={() => setError(null)}

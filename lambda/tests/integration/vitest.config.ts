@@ -4,15 +4,10 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
-        testTimeout: 60000, // 60 seconds for integration tests
+        testTimeout: 180000, // 3 minutes for performance tests
         hookTimeout: 60000,
-        teardownTimeout: 60000,
-        isolate: true,
-        pool: 'forks',
-        poolOptions: {
-            forks: {
-                singleFork: true,
-            },
-        },
+        teardownTimeout: 30000,
+        isolate: false, // Share context between tests for performance metrics
+        setupFiles: ['./vitest.setup.ts'], // Global setup file
     },
 });
