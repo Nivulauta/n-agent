@@ -91,6 +91,68 @@ npm test -- error-resilience.test.ts
 npm test -- error-resilience.test.ts -t "OpenSearch Unavailable"
 ```
 
+### load-concurrent-users.test.ts
+
+Tests concurrent user support and performance under load:
+
+- **100 Concurrent WebSocket Connections**: Validates Lambda scaling (Requirement 9.1)
+- **Vector Store Query Performance**: Tests concurrent query handling (Requirement 9.3)
+- **WebSocket Connection Capacity**: Validates connection stability (Requirement 9.4)
+- **50 Concurrent Chat Requests**: Tests Bedrock service capacity with response time validation (Requirement 9.5)
+
+**Run load tests:**
+```bash
+npm test -- load-concurrent-users.test.ts
+```
+
+**See detailed guide:**
+```bash
+cat LOAD_TEST_GUIDE.md
+```
+
+### e2e-user-flow.test.ts
+
+Tests complete end-to-end user flows:
+
+- **Login → Upload → Process → Query**: Complete user journey with RAG
+- **Document Search Results**: Validates document appears after processing
+- **Chat with Citations**: Tests chat responses include document citations
+- **WebSocket Stability**: Tests connection persistence over extended sessions
+
+**Run E2E tests:**
+```bash
+npm test -- e2e-user-flow.test.ts
+```
+
+### security-verification.test.ts
+
+Tests security configurations and compliance:
+
+- **S3 Encryption**: Validates encryption at rest
+- **DynamoDB Encryption**: Validates table encryption
+- **IAM Least Privilege**: Tests role permissions
+- **API Gateway Authentication**: Validates authentication requirements
+- **TLS Configuration**: Tests encryption in transit
+
+**Run security tests:**
+```bash
+npm test -- security-verification.test.ts
+```
+
+### audit-logging-verification.test.ts
+
+Tests audit logging completeness:
+
+- **User Action Logging**: Validates all user actions are logged
+- **Document Operation Logging**: Tests document upload/delete logging
+- **Bedrock API Call Logging**: Validates API call logging
+- **Log Retention**: Tests 365-day retention configuration
+
+**Run audit tests:**
+```bash
+npm test -- audit-logging-verification.test.ts
+```
+
 ## Configuration Reference
 
 ### Required Configuration

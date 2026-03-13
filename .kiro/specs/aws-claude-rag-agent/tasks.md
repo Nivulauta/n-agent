@@ -454,7 +454,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 3.1, 7.1, 12.1, 14.2_
 
 
-- [ ] 18. Implement performance monitoring and metrics
+- [x] 18. Implement performance monitoring and metrics
   - [x] 18.1 Add CloudWatch metrics emission to Lambda functions
     - Emit execution duration for every Lambda invocation
     - Emit custom metrics: query_latency, embedding_generation_time, search_latency
@@ -473,14 +473,14 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Display concurrent user count
     - _Requirements: 15.4_
   
-  - [ ] 18.4 Configure CloudWatch alarms
+  - [x] 18.4 Configure CloudWatch alarms
     - Create alarm for response time > 2 seconds (threshold from requirements)
     - Create alarm for error rate > 5%
     - Create alarm for Bedrock throttling errors
     - Send notifications to SNS topic
     - _Requirements: 15.5_
   
-  - [ ]* 18.5 Write unit tests for metrics emission
+  - [x] 18.5 Write unit tests for metrics emission
     - Test metric data structure
     - Test metric values calculation
     - _Requirements: 15.1, 15.2, 15.3_
@@ -520,7 +520,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Ensure NAT Gateway for outbound Bedrock API calls
     - _Requirements: 9.1_
   
-  - [ ]* 20.3 Write load tests for concurrent user support
+  - [x] 20.3 Write load tests for concurrent user support
     - Test 100 concurrent WebSocket connections
     - Test 100 concurrent chat requests
     - Verify response times remain under 2 seconds
