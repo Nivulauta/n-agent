@@ -145,8 +145,6 @@ if [ -d "websocket/shared" ]; then
     cd websocket/shared
     npm install
     npm run build
-    # Rename .js to .mjs
-    find dist -name "*.js" -type f -exec sh -c 'mv "$1" "${1%.js}.mjs"' _ {} \;
     echo "  ✓ WebSocket shared utilities built successfully"
     cd - > /dev/null
 fi
@@ -208,13 +206,7 @@ if [ -d "document-processor/generate-embeddings" ]; then
     echo "Building Embedding Generator Lambda..."
     cd document-processor/generate-embeddings
     
-    # Use the custom build script if it exists
-    if [ -f "build.sh" ]; then
-        bash build.sh
-    else
-        # Fallback to standard build
-        build_lambda "." "Embedding Generator"
-    fi
+    build_lambda "." "Embedding Generator"
     
     echo "  ✓ Embedding Generator Lambda built successfully"
     cd - > /dev/null
