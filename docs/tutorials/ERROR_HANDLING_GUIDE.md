@@ -1,6 +1,6 @@
 # Error Handling and User Feedback Implementation
 
-This document describes the comprehensive error handling and user feedback system implemented in the AWS Claude RAG Chatbot frontend.
+This document describes the comprehensive error handling and user feedback system implemented in the Nivulauta Agent frontend.
 
 ## Overview
 

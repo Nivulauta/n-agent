@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Authentication Service has been successfully implemented with three Lambda functions that handle user authentication, authorization, and session management for the AWS Claude RAG Chatbot system.
+The Authentication Service has been successfully implemented with three Lambda functions that handle user authentication, authorization, and session management for the Nivulauta Agent system.
 
 ## Implemented Components
 

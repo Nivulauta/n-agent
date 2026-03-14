@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the integration between the Document Processor and Embedding Generator, implementing Task 11.1 of the AWS Claude RAG Chatbot specification.
+This document describes the integration between the Document Processor and Embedding Generator, implementing Task 11.1 of the Nivulauta Agent specification.
 
 ## Architecture
 

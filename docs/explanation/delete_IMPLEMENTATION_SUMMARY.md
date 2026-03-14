@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully implemented the DELETE /documents/{documentId} endpoint Lambda function as specified in task 12.3 of the AWS Claude RAG Chatbot implementation plan.
+Successfully implemented the DELETE /documents/{documentId} endpoint Lambda function as specified in task 12.3 of the Nivulauta Agent implementation plan.
 
 ## Implementation Details
 

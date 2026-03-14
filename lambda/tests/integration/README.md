@@ -1,6 +1,6 @@
 # Integration and Performance Tests
 
-This directory contains integration tests and performance benchmarks for the AWS Claude RAG Chatbot.
+This directory contains integration tests and performance benchmarks for the Nivulauta Agent.
 
 ## Test Suites
 

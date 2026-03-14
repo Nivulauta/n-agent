@@ -2,12 +2,12 @@
 
 ## Introduction
 
-This document specifies the requirements for an AWS-based RAG (Retrieval-Augmented Generation) chatbot system that uses Claude 3 Sonnet on Amazon Bedrock as the language model. The system provides a web-based chat interface with real-time responses, document search capabilities across PDF files stored in S3, and comprehensive user management features. The architecture prioritizes serverless components, cost optimization, and security while maintaining high performance and scalability.
+This document specifies the requirements for an AWS-based RAG (Retrieval-Augmented Generation) chatbot system that uses Claude Haiku 4.5 on Amazon Bedrock as the language model. The system provides a web-based chat interface with real-time responses, document search capabilities across PDF files stored in S3, and comprehensive user management features. The architecture prioritizes serverless components, cost optimization, and security while maintaining high performance and scalability.
 
 ## Glossary
 
 - **Chat_Interface**: The React-based web application that provides the user-facing chat experience
-- **Bedrock_Service**: The AWS service integration that communicates with Claude 3 Sonnet model
+- **Bedrock_Service**: The AWS service integration that communicates with Claude Haiku 4.5 model
 - **RAG_System**: The retrieval-augmented generation system that searches and retrieves relevant document content
 - **Document_Processor**: The component that extracts text from PDFs and generates embeddings
 - **Vector_Store**: The OpenSearch-based database that stores and searches document embeddings

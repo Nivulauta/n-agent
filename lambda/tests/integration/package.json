@@ -1,7 +1,7 @@
 {
     "name": "backend-integration-tests",
     "version": "1.0.0",
-    "description": "Integration tests for AWS Claude RAG Chatbot backend services",
+    "description": "Integration tests for Nivulauta Agent backend services",
     "type": "module",
     "scripts": {
         "test": "vitest run",

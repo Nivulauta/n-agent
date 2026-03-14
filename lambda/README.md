@@ -1,6 +1,6 @@
 # Lambda Functions
 
-This directory contains all Lambda functions for the AWS Claude RAG Chatbot system.
+This directory contains all Lambda functions for the Nivulauta Agent system.
 
 ## Directory Structure
 

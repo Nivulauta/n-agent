@@ -1,6 +1,6 @@
 # Document Management Module
 
-This Terraform module manages the Lambda functions for document operations in the AWS Claude RAG Chatbot system.
+This Terraform module manages the Lambda functions for document operations in the Nivulauta Agent system.
 
 ## Overview
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Chat History Store module provides persistent storage for chat messages using DynamoDB with KMS encryption. This implementation fulfills Task 15.1 of the AWS Claude RAG Chatbot specification.
+The Chat History Store module provides persistent storage for chat messages using DynamoDB with KMS encryption. This implementation fulfills Task 15.1 of the Nivulauta Agent specification.
 
 ## Implementation Details
 

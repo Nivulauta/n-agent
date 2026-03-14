@@ -1,4 +1,4 @@
-# Operational Runbook: AWS Claude RAG Chatbot
+# Operational Runbook: Nivulauta Agent
 
 This runbook covers monitoring, alerting, incident investigation, failed document handling, and scaling procedures for the chatbot system.
 

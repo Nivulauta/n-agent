@@ -1,6 +1,6 @@
-# AWS Claude RAG Chatbot - Frontend
+# Nivulauta Agent - Frontend
 
-React-based single-page application for the AWS Claude RAG Chatbot system. Built with TypeScript, Vite, and Material-UI.
+React-based single-page application for the Nivulauta Agent system. Built with TypeScript, Vite, and Material-UI.
 
 ## Features
 

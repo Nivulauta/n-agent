@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the implementation of Task 3: Implement WebSocket Manager for the AWS Claude RAG Chatbot system.
+This document summarizes the implementation of Task 3: Implement WebSocket Manager for the Nivulauta Agent system.
 
 ## Completed Sub-Tasks
 

@@ -3,7 +3,7 @@
 # REST API
 resource "aws_api_gateway_rest_api" "chatbot" {
   name        = "${var.environment}-chatbot-api"
-  description = "REST API for AWS Claude RAG Chatbot"
+  description = "REST API for Nivulauta Agent"
 
   endpoint_configuration {
     types = ["REGIONAL"]

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the integration between the Embedding Generator and Vector Store, implementing Task 11.2 of the AWS Claude RAG Chatbot specification. After embeddings are generated, they are automatically indexed in OpenSearch and the DocumentMetadata table is updated with completion status.
+This document describes the integration between the Embedding Generator and Vector Store, implementing Task 11.2 of the Nivulauta Agent specification. After embeddings are generated, they are automatically indexed in OpenSearch and the DocumentMetadata table is updated with completion status.
 
 ## Architecture
 

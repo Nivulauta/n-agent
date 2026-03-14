@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Audit Logger is a structured logging utility for CloudWatch Logs that provides comprehensive audit trails for compliance requirements. It implements requirements 11.1-11.5 from the AWS Claude RAG Chatbot specification.
+The Audit Logger is a structured logging utility for CloudWatch Logs that provides comprehensive audit trails for compliance requirements. It implements requirements 11.1-11.5 from the Nivulauta Agent specification.
 
 ## Implementation Details
 

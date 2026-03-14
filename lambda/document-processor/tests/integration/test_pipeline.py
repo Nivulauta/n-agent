@@ -437,7 +437,7 @@ class TestDocumentProcessingPipeline(unittest.TestCase):
         # 1. Create and upload test document with specific content
         document_id = str(uuid.uuid4())
         content = """
-        AWS Claude RAG Chatbot System
+        Nivulauta Agent System
         
         This document describes the architecture of a RAG chatbot system.
         The system uses Amazon Bedrock with Claude 3 Sonnet for natural language processing.

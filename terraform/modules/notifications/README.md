@@ -1,6 +1,6 @@
 # Notifications Module
 
-This Terraform module creates SNS topics for system notifications in the AWS Claude RAG Chatbot system.
+This Terraform module creates SNS topics for system notifications in the Nivulauta Agent system.
 
 ## Overview
 
