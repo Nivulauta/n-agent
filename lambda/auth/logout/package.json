@@ -5,7 +5,8 @@
     "main": "index.mjs",
     "scripts": {
         "build": "node build.mjs",
-        "test": "jest"
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.490.0",

@@ -5,21 +5,20 @@
     "main": "index.mjs",
     "scripts": {
         "build": "node build.mjs",
-        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js"
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.490.0",
-        "@aws-sdk/lib-dynamodb": "^3.490.0",
-        "@aws-sdk/client-kms": "^3.490.0"
+        "@aws-sdk/client-kms": "^3.490.0",
+        "@aws-sdk/lib-dynamodb": "^3.490.0"
     },
     "devDependencies": {
         "@types/aws-lambda": "^8.10.131",
-        "@types/jest": "^30.0.0",
         "@types/node": "^20.10.6",
         "aws-sdk-client-mock": "^4.0.0",
-        "jest": "^30.2.0",
-        "ts-jest": "^29.4.6",
-        "typescript": "^5.3.3"
+        "typescript": "^5.3.3",
+        "vitest": "^2.1.9"
     },
     "type": "module"
 }

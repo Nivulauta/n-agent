@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, GetCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
@@ -6,7 +7,6 @@ import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/cl
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 const s3Mock = mockClient(S3Client);
 
-// Import handler after setting up mocks
 describe('Document Delete Handler', () => {
     beforeEach(() => {
         dynamoMock.reset();
@@ -49,7 +49,7 @@ describe('Document Delete Handler', () => {
         succeed: () => { },
     });
 
-    test('should return 400 if documentId is missing', async () => {
+    it('should return 400 if documentId is missing', async () => {
         const { handler } = await import('./index.js');
 
         const event = createEvent('', 'user-123');
@@ -62,7 +62,7 @@ describe('Document Delete Handler', () => {
         expect(JSON.parse(result.body)).toEqual({ error: 'Document ID is required' });
     });
 
-    test('should return 400 if documentId is not a valid UUID', async () => {
+    it('should return 400 if documentId is not a valid UUID', async () => {
         const { handler } = await import('./index.js');
 
         const event = createEvent('invalid-id', 'user-123');
@@ -74,7 +74,7 @@ describe('Document Delete Handler', () => {
         expect(JSON.parse(result.body)).toEqual({ error: 'Invalid document ID format' });
     });
 
-    test('should return 401 if user is not authenticated', async () => {
+    it('should return 401 if user is not authenticated', async () => {
         const { handler } = await import('./index.js');
 
         const event = createEvent('550e8400-e29b-41d4-a716-446655440000', 'unknown');
@@ -87,13 +87,12 @@ describe('Document Delete Handler', () => {
         expect(JSON.parse(result.body)).toEqual({ error: 'Unauthorized' });
     });
 
-    test('should return 404 if document does not exist', async () => {
+    it('should return 404 if document does not exist', async () => {
         const { handler } = await import('./index.js');
 
         const documentId = '550e8400-e29b-41d4-a716-446655440000';
         const userId = 'user-123';
 
-        // Mock DynamoDB GetCommand to return no item
         dynamoMock.on(GetCommand).resolves({ Item: undefined });
 
         const event = createEvent(documentId, userId);
@@ -105,14 +104,13 @@ describe('Document Delete Handler', () => {
         expect(JSON.parse(result.body)).toEqual({ error: 'Document not found' });
     });
 
-    test('should return 403 if user does not own the document', async () => {
+    it('should return 403 if user does not own the document', async () => {
         const { handler } = await import('./index.js');
 
         const documentId = '550e8400-e29b-41d4-a716-446655440000';
         const userId = 'user-123';
         const ownerId = 'user-456';
 
-        // Mock DynamoDB GetCommand to return document owned by different user
         dynamoMock.on(GetCommand).resolves({
             Item: {
                 PK: `DOC#${documentId}`,
@@ -140,13 +138,12 @@ describe('Document Delete Handler', () => {
         });
     });
 
-    test('should successfully delete document when user owns it', async () => {
+    it('should successfully delete document when user owns it', async () => {
         const { handler } = await import('./index.js');
 
         const documentId = '550e8400-e29b-41d4-a716-446655440000';
         const userId = 'user-123';
 
-        // Mock DynamoDB GetCommand to return document owned by user
         dynamoMock.on(GetCommand).resolves({
             Item: {
                 PK: `DOC#${documentId}`,
@@ -163,7 +160,6 @@ describe('Document Delete Handler', () => {
             },
         });
 
-        // Mock S3 ListObjectsV2Command to return objects
         s3Mock.on(ListObjectsV2Command).resolves({
             Contents: [
                 { Key: `uploads/${documentId}/test.pdf` },
@@ -171,10 +167,7 @@ describe('Document Delete Handler', () => {
             ],
         });
 
-        // Mock S3 DeleteObjectCommand
         s3Mock.on(DeleteObjectCommand).resolves({});
-
-        // Mock DynamoDB DeleteCommand
         dynamoMock.on(DeleteCommand).resolves({});
 
         const event = createEvent(documentId, userId);
@@ -188,10 +181,8 @@ describe('Document Delete Handler', () => {
             message: 'Document deleted successfully',
         });
 
-        // Verify S3 delete was called
         expect(s3Mock.calls().length).toBeGreaterThan(0);
 
-        // Verify DynamoDB delete was called
         const deleteCalls = dynamoMock.commandCalls(DeleteCommand);
         expect(deleteCalls.length).toBe(1);
         expect(deleteCalls[0].args[0].input).toMatchObject({

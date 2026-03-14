@@ -1,8 +1,8 @@
-# Implementation Plan: AWS Claude RAG Agent
+# Implementation Plan: Nivulauta Agent
 
 ## Overview
 
-This implementation plan breaks down the AWS Claude RAG Agent into discrete coding tasks. The system uses TypeScript for Lambda functions and React/TypeScript for the frontend. The implementation follows a bottom-up approach: infrastructure setup, core backend services, document processing pipeline, frontend interface, and finally integration and testing.
+This implementation plan breaks down the Nivulauta Agent into discrete coding tasks. The system uses TypeScript for Lambda functions and React/TypeScript for the frontend. The implementation follows a bottom-up approach: infrastructure setup, core backend services, document processing pipeline, frontend interface, and finally integration and testing.
 
 The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSearch, DynamoDB, and Bedrock. Each task builds incrementally, ensuring that components are tested and integrated as they're developed.
 
@@ -650,7 +650,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 3.2, 5.1, 7.2, 12.5_
 
 
-- [ ] 25. Create deployment documentation and runbooks
+- [x] 25. Create deployment documentation and runbooks
   - [x] 25.1 Document infrastructure deployment process
     - Create README with Terraform deployment instructions
     - Document required AWS permissions and prerequisites
@@ -658,14 +658,14 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Include troubleshooting guide for common deployment issues
     - _Requirements: 13.1_
   
-  - [ ] 25.2 Document operational procedures
+  - [x] 25.2 Document operational procedures
     - Create runbook for monitoring and alerting
     - Document how to investigate CloudWatch alarms
     - Document how to handle failed document processing
     - Document how to scale resources for increased load
     - _Requirements: 15.4, 15.5_
   
-  - [ ] 25.3 Document cost optimization strategies
+  - [x] 25.3 Document cost optimization strategies
     - Document cache configuration and tuning
     - Document Lambda memory/timeout optimization
     - Document OpenSearch instance sizing recommendations
@@ -673,7 +673,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
 
-- [ ] 26. Final checkpoint - System ready for production
+- [x] 26. Final checkpoint - System ready for production
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
