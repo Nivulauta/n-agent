@@ -1,9 +1,9 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import type { GetHistoryResult } from '../../../shared/chat-history/src/types.js';
 
 // Mock the ChatHistoryStore before importing handler
-const mockGetHistory = jest.fn<() => Promise<GetHistoryResult>>().mockResolvedValue({
+const mockGetHistory = vi.fn<() => Promise<GetHistoryResult>>().mockResolvedValue({
     messages: [
         {
             userId: 'test-user',
@@ -30,8 +30,8 @@ const mockGetHistory = jest.fn<() => Promise<GetHistoryResult>>().mockResolvedVa
     nextToken: undefined
 });
 
-jest.unstable_mockModule('../../../shared/chat-history/src/chat-history.js', () => ({
-    ChatHistoryStore: jest.fn().mockImplementation(() => ({
+vi.mock('../../../shared/chat-history/src/chat-history.js', () => ({
+    ChatHistoryStore: vi.fn().mockImplementation(() => ({
         getHistory: mockGetHistory
     }))
 }));
@@ -58,7 +58,7 @@ describe('Chat History Lambda Handler', () => {
         mockGetHistory.mockClear();
     });
 
-    test('should return 401 when userId is missing', async () => {
+    it('should return 401 when userId is missing', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {
@@ -75,7 +75,7 @@ describe('Chat History Lambda Handler', () => {
         expect(JSON.parse(result.body)).toEqual({ error: 'Unauthorized' });
     });
 
-    test('should return 400 when sessionId is missing', async () => {
+    it('should return 400 when sessionId is missing', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {},
@@ -92,7 +92,7 @@ describe('Chat History Lambda Handler', () => {
         expect(JSON.parse(result.body)).toEqual({ error: 'Missing required parameter: sessionId' });
     });
 
-    test('should return chat history successfully', async () => {
+    it('should return chat history successfully', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {
@@ -116,7 +116,7 @@ describe('Chat History Lambda Handler', () => {
         expect(body.nextToken).toBeUndefined();
     });
 
-    test('should use default limit when not provided', async () => {
+    it('should use default limit when not provided', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {
@@ -134,12 +134,12 @@ describe('Chat History Lambda Handler', () => {
         expect(result.statusCode).toBe(200);
     });
 
-    test('should cap limit at maximum value', async () => {
+    it('should cap limit at maximum value', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {
                 sessionId: 'test-session',
-                limit: '200' // Exceeds MAX_LIMIT of 100
+                limit: '200'
             },
             requestContext: {
                 authorizer: {
@@ -153,7 +153,7 @@ describe('Chat History Lambda Handler', () => {
         expect(result.statusCode).toBe(200);
     });
 
-    test('should handle invalid limit parameter', async () => {
+    it('should handle invalid limit parameter', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {
@@ -170,10 +170,9 @@ describe('Chat History Lambda Handler', () => {
         const result = await handler(event as APIGatewayProxyEvent, mockContext);
 
         expect(result.statusCode).toBe(200);
-        // Should use default limit
     });
 
-    test('should include CORS headers in response', async () => {
+    it('should include CORS headers in response', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {
@@ -195,7 +194,7 @@ describe('Chat History Lambda Handler', () => {
         });
     });
 
-    test('should pass nextToken to getHistory', async () => {
+    it('should pass nextToken to getHistory', async () => {
         const event: Partial<APIGatewayProxyEvent> = {
             httpMethod: 'GET',
             queryStringParameters: {

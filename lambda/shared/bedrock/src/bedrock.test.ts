@@ -557,8 +557,8 @@ describe('Property Tests', () => {
                         // Access the private modelId to verify it's Claude 3 Sonnet
                         const modelId = (service as any).modelId;
 
-                        // Property: The service MUST be configured to use Claude 3 Sonnet
-                        expect(modelId).toBe('anthropic.claude-3-sonnet-20240229-v1:0');
+                        // Property: The service MUST be configured to use Claude Haiku 4.5
+                        expect(modelId).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
 
                         // Verify the model ID never contains other model identifiers
                         expect(modelId).not.toMatch(/gpt-/i); // Not OpenAI
@@ -570,7 +570,7 @@ describe('Property Tests', () => {
                         expect(modelId).not.toMatch(/claude-instant/i); // Not Claude Instant
 
                         // Verify it contains the correct model family
-                        expect(modelId).toContain('claude-3-sonnet');
+                        expect(modelId).toContain('claude-haiku');
                         expect(modelId).toContain('anthropic');
                     }
                 ),
@@ -588,19 +588,18 @@ describe('Property Tests', () => {
                     async (prompt, systemPrompt) => {
                         const service = new BedrockService({ region: 'us-east-1' });
 
-                        // Property: The service MUST always be configured with Claude 3 Sonnet
+                        // Property: The service MUST always be configured with Claude Haiku 4.5
                         const modelId = (service as any).modelId;
-                        expect(modelId).toBe('anthropic.claude-3-sonnet-20240229-v1:0');
+                        expect(modelId).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
 
                         // Property: The model ID must contain the correct identifiers
                         expect(modelId).toContain('anthropic');
-                        expect(modelId).toContain('claude-3-sonnet');
+                        expect(modelId).toContain('claude-haiku');
 
                         // Property: The model ID must not be any other model
                         expect(modelId).not.toContain('gpt');
                         expect(modelId).not.toContain('gemini');
                         expect(modelId).not.toContain('llama');
-                        expect(modelId).not.toContain('titan');
                     }
                 ),
                 {
@@ -616,9 +615,9 @@ describe('Property Tests', () => {
                     async (prompt) => {
                         const service = new BedrockService({ region: 'us-east-1' });
 
-                        // Property: Streaming requests MUST also use Claude 3 Sonnet
+                        // Property: Streaming requests MUST also use Claude Haiku 4.5
                         const modelId = (service as any).modelId;
-                        expect(modelId).toBe('anthropic.claude-3-sonnet-20240229-v1:0');
+                        expect(modelId).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
 
                         // Verify the generator function exists
                         const generator = service.generateResponse({ prompt });
@@ -634,15 +633,15 @@ describe('Property Tests', () => {
 
         it('should never allow configuration with a different model', async () => {
             // Property: Even if someone tries to configure a different model,
-            // the default should always be Claude 3 Sonnet
+            // the default should always be Claude Haiku 4.5
             const service1 = new BedrockService();
-            expect((service1 as any).modelId).toBe('anthropic.claude-3-sonnet-20240229-v1:0');
+            expect((service1 as any).modelId).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
 
             const service2 = new BedrockService({ region: 'us-west-2' });
-            expect((service2 as any).modelId).toBe('anthropic.claude-3-sonnet-20240229-v1:0');
+            expect((service2 as any).modelId).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
 
             const service3 = new BedrockService({ maxTokens: 1024, temperature: 0.5 });
-            expect((service3 as any).modelId).toBe('anthropic.claude-3-sonnet-20240229-v1:0');
+            expect((service3 as any).modelId).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
         });
     });
 });

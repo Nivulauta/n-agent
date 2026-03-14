@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import * as fc from 'fast-check';
 import { handler } from './index';

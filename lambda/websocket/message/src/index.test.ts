@@ -1124,7 +1124,7 @@ describe('WebSocket Chat Message Handler', () => {
 
                 mockRAGAssembleContext.mockReturnValue({
                     systemPrompt: 'You are a helpful assistant. Use the following context to answer questions.',
-                    prompt: 'Context: AWS Lambda... OpenSearch...\n\nQuestion: What technologies are used?',
+                    userPrompt: 'Context: AWS Lambda... OpenSearch...\n\nQuestion: What technologies are used?',
                     conversationHistory: [],
                     totalTokens: 250,
                     truncated: false,
@@ -1581,7 +1581,7 @@ describe('WebSocket Chat Message Handler', () => {
                 });
 
                 const result = await handler(event) as HandlerResult;
-  
+
                 // Verify: Error response
                 expect(result.statusCode).toBe(500);
 
@@ -1633,8 +1633,10 @@ describe('WebSocket Chat Message Handler', () => {
             });
 
             it('should handle generic Bedrock errors with fallback message', async () => {
-                // Setup: Configure generic error
-                mockBedrockGenerateResponse.mockRejectedValue(new Error('Unknown Bedrock error'));
+                // Setup: Configure generic error - use async generator that throws
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    throw new Error('Unknown Bedrock error');
+                });
 
                 // Execute
                 const event = createMockEvent({
@@ -1665,7 +1667,9 @@ describe('WebSocket Chat Message Handler', () => {
                 // Setup: Configure multiple failures
                 mockChatHistoryGetHistory.mockRejectedValue(new Error('DynamoDB error'));
                 mockCacheGetCachedResponse.mockRejectedValue(new Error('Redis error'));
-                mockBedrockGenerateResponse.mockRejectedValue(new Error('Bedrock error'));
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    throw new Error('Bedrock error');
+                });
 
                 // Execute
                 const event = createMockEvent({
@@ -1689,7 +1693,9 @@ describe('WebSocket Chat Message Handler', () => {
 
             it('should handle message sender failures during error reporting', async () => {
                 // Setup: Configure Bedrock error and message sender failure
-                mockBedrockGenerateResponse.mockRejectedValue(new Error('Bedrock error'));
+                mockBedrockGenerateResponse.mockImplementation(async function* () {
+                    throw new Error('Bedrock error');
+                });
                 mockMessageSenderSendMessage.mockRejectedValue(new Error('Failed to send message'));
 
                 // Execute

@@ -309,7 +309,7 @@ describe('OpenSearchVectorStore', () => {
             await vectorStore.searchSimilar(queryVector, 5, filters);
 
             const callArgs = mockClient.search.mock.calls[0][0];
-            expect(callArgs.body.query.knn.filter).toEqual({
+            expect(callArgs.body.query.knn.embedding.filter).toEqual({
                 bool: {
                     must: [
                         { terms: { documentId: ['doc-1', 'doc-2'] } }
@@ -331,7 +331,7 @@ describe('OpenSearchVectorStore', () => {
             await vectorStore.searchSimilar(queryVector, 5, filters);
 
             const callArgs = mockClient.search.mock.calls[0][0];
-            expect(callArgs.body.query.knn.filter).toEqual({
+            expect(callArgs.body.query.knn.embedding.filter).toEqual({
                 bool: {
                     must: [
                         {
@@ -360,10 +360,10 @@ describe('OpenSearchVectorStore', () => {
             await vectorStore.searchSimilar(queryVector, 5, filters);
 
             const callArgs = mockClient.search.mock.calls[0][0];
-            expect(callArgs.body.query.knn.filter.bool.must).toContainEqual({
+            expect(callArgs.body.query.knn.embedding.filter.bool.must).toContainEqual({
                 term: { category: 'technical' }
             });
-            expect(callArgs.body.query.knn.filter.bool.must).toContainEqual({
+            expect(callArgs.body.query.knn.embedding.filter.bool.must).toContainEqual({
                 term: { status: 'active' }
             });
         });
@@ -383,7 +383,7 @@ describe('OpenSearchVectorStore', () => {
             await vectorStore.searchSimilar(queryVector, 5, filters);
 
             const callArgs = mockClient.search.mock.calls[0][0];
-            expect(callArgs.body.query.knn.filter.bool.must).toHaveLength(3);
+            expect(callArgs.body.query.knn.embedding.filter.bool.must).toHaveLength(3);
         });
 
         it('should return empty array when no results found', async () => {
@@ -590,7 +590,7 @@ describe('OpenSearchVectorStore', () => {
 
             const callArgs = mockClient.search.mock.calls[0][0];
             expect(callArgs.body.size).toBe(k);
-            expect(callArgs.body.query.knn.k).toBe(k);
+            expect(callArgs.body.query.knn.embedding.k).toBe(k);
         });
     });
 
