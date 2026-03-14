@@ -241,12 +241,12 @@ describe('Chat Component - Property-Based Tests', () => {
                             }
 
                             // Property: Messages should appear in the order they were sent
-                            const chatText = chatWindow?.textContent || '';
-                            let lastIndex = -1;
-                            for (const messageContent of messages) {
-                                const currentIndex = chatText.indexOf(messageContent);
-                                expect(currentIndex).toBeGreaterThan(lastIndex);
-                                lastIndex = currentIndex;
+                            const messageElements = chatWindow?.querySelectorAll('.message.user .message-content') || [];
+                            const renderedTexts = Array.from(messageElements).map(el => el.textContent || '');
+                            // The last N messages should match our sent messages in order
+                            const relevantTexts = renderedTexts.slice(-messages.length);
+                            for (let i = 0; i < messages.length; i++) {
+                                expect(relevantTexts[i]).toContain(messages[i]);
                             }
                         } finally {
                             // Clean up
