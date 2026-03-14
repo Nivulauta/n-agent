@@ -9,6 +9,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChatMessage, DocumentChunk } from '../types/api';
 import './Message.css';
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github.css";
 
 interface MessageProps {
     message: ChatMessage;
@@ -86,7 +88,9 @@ const Message: React.FC<MessageProps> = ({ message, ragChunks }) => {
                 {isUser ? (
                     message.content
                 ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <ReactMarkdown
+                        rehypePlugins={[rehypeHighlight]}
+                        remarkPlugins={[remarkGfm]}>
                         {message.content}
                     </ReactMarkdown>
                 )}

@@ -5,11 +5,10 @@
     "type": "module",
     "main": "dist/index.mjs",
     "scripts": {
-        "build": "tsc",
-        "build:terraform": "bash build-for-terraform.sh",
+        "build": "node build.mjs",
         "test": "vitest run",
         "test:watch": "vitest",
-        "init": "ts-node scripts/init-local.ts"
+        "clean": "rm -rf dist node_modules"
     },
     "dependencies": {
         "@opensearch-project/opensearch": "^2.12.0",
