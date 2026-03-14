@@ -1,7 +1,7 @@
 /**
  * Performance Benchmark Tests
  * 
- * Tests performance metrics for the AWS Claude RAG Chatbot:
+ * Tests performance metrics for the Nivulauta Agent:
  * - Response time for queries without RAG (target: < 6s)
  * - Response time for queries with RAG (target: < 6s)
  * - Document processing time for 10MB PDF (target: < 30s)

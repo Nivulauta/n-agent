@@ -1,6 +1,6 @@
 # Cost Optimization Guide
 
-This guide covers cost optimization strategies for the AWS RAG Chatbot system. It includes cache tuning, Lambda right-sizing, OpenSearch scaling, and expected monthly costs at various usage levels.
+This guide covers cost optimization strategies for the Nivulauta Agent system. It includes cache tuning, Lambda right-sizing, OpenSearch scaling, and expected monthly costs at various usage levels.
 
 All recommendations include specific Terraform variable changes you can apply immediately.
 

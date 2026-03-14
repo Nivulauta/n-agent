@@ -1,6 +1,6 @@
 # Authentication Service Lambda Functions
 
-This directory contains the Lambda functions for the Authentication Service of the AWS Claude RAG Chatbot.
+This directory contains the Lambda functions for the Authentication Service of the Nivulauta Agent.
 
 ## Components
 

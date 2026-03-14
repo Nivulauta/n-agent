@@ -1,6 +1,6 @@
 # Chat Interface Components
 
-This directory contains the chat interface components for the AWS Claude RAG Chatbot.
+This directory contains the chat interface components for the Nivulauta Agent.
 
 ## Components
 

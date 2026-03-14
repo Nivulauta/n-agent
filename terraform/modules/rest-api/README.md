@@ -1,6 +1,6 @@
 # REST API Gateway Module
 
-This Terraform module creates a REST API Gateway for the AWS Claude RAG Chatbot system with Lambda Authorizer integration, request/response validation, and comprehensive CORS support.
+This Terraform module creates a REST API Gateway for the Nivulauta Agent system with Lambda Authorizer integration, request/response validation, and comprehensive CORS support.
 
 ## Features
 

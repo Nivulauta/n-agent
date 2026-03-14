@@ -2,7 +2,7 @@
 
 ## Overview
 
-Implemented a Redis-based cache utility module for the AWS Claude RAG Chatbot system. The module provides caching for Bedrock API responses and OpenSearch search results to reduce costs and improve performance.
+Implemented a Redis-based cache utility module for the Nivulauta Agent system. The module provides caching for Bedrock API responses and OpenSearch search results to reduce costs and improve performance.
 
 ## Implementation Details
 

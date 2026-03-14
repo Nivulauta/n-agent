@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the implementation of the REST API Gateway module for the AWS Claude RAG Chatbot, including throttling and AWS WAF configuration as specified in tasks 19.1 and 19.2.
+This document summarizes the implementation of the REST API Gateway module for the Nivulauta Agent, including throttling and AWS WAF configuration as specified in tasks 19.1 and 19.2.
 
 ## Task 19.1: REST API Configuration ✅
 

@@ -130,7 +130,7 @@ This chatbot system enables users to interact with Claude Haiku 4.5 while automa
 │
 └── .kiro/              # Project specifications
     └── specs/
-        └── aws-claude-rag-chatbot/
+        └── n-agent/
             ├── requirements.md  # Functional requirements
             ├── design.md       # Architecture design
             └── tasks.md        # Implementation tasks
@@ -477,7 +477,7 @@ Production Ready  ████████████████████ 1
 
 
 
-See [tasks.md](.kiro/specs/aws-claude-rag-agent/tasks.md) for the complete implementation plan with detailed subtasks.
+See [tasks.md](.kiro/specs/n-agent/tasks.md) for the complete implementation plan with detailed subtasks.
 
 ## Getting Started
 
@@ -834,9 +834,9 @@ This project follows a spec-driven development approach:
 
 ## Documentation
 
-- [Requirements Document](.kiro/specs/aws-claude-rag-agent/requirements.md) - Functional requirements
-- [Design Document](.kiro/specs/aws-claude-rag-agent/design.md) - Architecture and design decisions
-- [Implementation Tasks](.kiro/specs/aws-claude-rag-agent/tasks.md) - Development roadmap
+- [Requirements Document](.kiro/specs/n-agent/requirements.md) - Functional requirements
+- [Design Document](.kiro/specs/n-agent/design.md) - Architecture and design decisions
+- [Implementation Tasks](.kiro/specs/n-agent/tasks.md) - Development roadmap
 - [Operations Runbook](docs/OPERATIONS_RUNBOOK.md) - Monitoring, alerting, and incident response
 - [Cost Optimization](docs/COST_OPTIMIZATION.md) - Cost strategies and monthly estimates
 - [Documentation Index](docs/README.md) - Comprehensive documentation

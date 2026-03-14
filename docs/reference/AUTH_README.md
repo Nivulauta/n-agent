@@ -1,6 +1,6 @@
 # Authentication Components
 
-This directory contains the authentication components for the AWS Claude RAG Chatbot frontend.
+This directory contains the authentication components for the Nivulauta Agent frontend.
 
 ## Components
 

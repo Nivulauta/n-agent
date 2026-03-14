@@ -1,6 +1,6 @@
 # Lambda Concurrency and Scaling Configuration
 
-This document summarizes the Lambda function concurrency limits, memory allocations, timeouts, and VPC networking configurations implemented for the AWS Claude RAG Chatbot system.
+This document summarizes the Lambda function concurrency limits, memory allocations, timeouts, and VPC networking configurations implemented for the Nivulauta Agent system.
 
 ## Configuration Summary
 

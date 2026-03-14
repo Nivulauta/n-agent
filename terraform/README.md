@@ -1,6 +1,6 @@
-# AWS Claude RAG Chatbot - Terraform Infrastructure
+# Nivulauta Agent - Terraform Infrastructure
 
-This directory contains Terraform configurations for deploying the AWS Claude RAG Chatbot infrastructure.
+This directory contains Terraform configurations for deploying the Nivulauta Agent infrastructure.
 
 ## Architecture Overview
 

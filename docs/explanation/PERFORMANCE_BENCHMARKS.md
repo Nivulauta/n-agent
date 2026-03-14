@@ -1,6 +1,6 @@
 # Performance Benchmarks
 
-This document describes the performance benchmark tests for the AWS Claude RAG Chatbot system.
+This document describes the performance benchmark tests for the Nivulauta Agent system.
 
 ## Overview
 

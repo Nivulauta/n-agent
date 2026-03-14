@@ -1,6 +1,6 @@
 # RAG Orchestration Module
 
-This module provides the RAG (Retrieval-Augmented Generation) orchestration functionality for the AWS Claude RAG Chatbot system. It coordinates embedding generation, caching, and vector search to retrieve relevant document chunks for user queries.
+This module provides the RAG (Retrieval-Augmented Generation) orchestration functionality for the Nivulauta Agent system. It coordinates embedding generation, caching, and vector search to retrieve relevant document chunks for user queries.
 
 ## Features
 

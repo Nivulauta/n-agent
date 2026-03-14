@@ -1,6 +1,6 @@
 # Document Management Components
 
-This directory contains the document management components for the AWS Claude RAG Chatbot frontend.
+This directory contains the document management components for the Nivulauta Agent frontend.
 
 ## Components
 

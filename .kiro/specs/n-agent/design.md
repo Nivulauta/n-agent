@@ -1,4 +1,4 @@
-# Design Document: AWS Claude RAG Chatbot
+# Design Document: Nivulauta Agent
 
 ## Overview
 

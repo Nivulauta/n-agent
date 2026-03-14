@@ -15,7 +15,7 @@
 
 ## Overview
 
-This guide provides comprehensive instructions for deploying the AWS Claude RAG Chatbot infrastructure using Terraform. The system deploys a complete serverless architecture including:
+This guide provides comprehensive instructions for deploying the Nivulauta Agent infrastructure using Terraform. The system deploys a complete serverless architecture including:
 
 - **Networking**: VPC with public/private subnets, NAT Gateway, VPC endpoints
 - **Compute**: Lambda functions for authentication, chat, document processing, and WebSocket handling
@@ -1585,7 +1585,7 @@ aws --debug <command>       # Enable AWS CLI debug output
 
 ## Summary
 
-This guide covered the complete deployment process for the AWS Claude RAG Chatbot infrastructure:
+This guide covered the complete deployment process for the Nivulauta Agent infrastructure:
 
 ✅ **Prerequisites**: Installed Terraform, AWS CLI, Node.js, and configured AWS credentials
 ✅ **Configuration**: Set up terraform.tfvars, OpenSearch password, and JWT secret

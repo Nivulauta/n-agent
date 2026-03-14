@@ -2,7 +2,7 @@
 
 ## Overview
 
-Created a comprehensive Terraform module for SNS-based notifications in the AWS Claude RAG Chatbot system.
+Created a comprehensive Terraform module for SNS-based notifications in the Nivulauta Agent system.
 
 ## What Was Created
 
