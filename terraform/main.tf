@@ -188,16 +188,6 @@ module "websocket" {
   message_handler_name     = module.websocket_handlers.message_function_name
 }
 
-module "agent_api" {
-  source = "./modules/agent-api"
-
-  environment                  = var.environment
-  mcp_server_config_table_name = module.database.mcp_server_config_table_name
-  mcp_server_config_table_arn  = module.database.mcp_server_config_table_arn
-  kms_key_arn                  = module.security.kms_key_arn
-  cors_origin                  = module.frontend.frontend_url
-}
-
 module "agent" {
   source = "./modules/agent"
 
@@ -230,8 +220,8 @@ module "rest_api" {
   document_delete_invoke_arn    = module.document_management.delete_invoke_arn
   chat_history_function_name    = module.chat_history.lambda_function_name
   chat_history_invoke_arn       = module.chat_history.lambda_invoke_arn
-  mcp_servers_function_name     = module.agent_api.mcp_servers_function_name
-  mcp_servers_invoke_arn        = module.agent_api.mcp_servers_invoke_arn
+  mcp_servers_function_name     = module.agent.mcp_servers_function_name
+  mcp_servers_invoke_arn        = module.agent.mcp_servers_invoke_arn
   cors_origin                   = module.frontend.frontend_url
 }
 
