@@ -1,0 +1,22 @@
+{
+    "name": "lambda-mcp-servers",
+    "version": "1.0.0",
+    "description": "MCP server management REST API endpoints",
+    "main": "index.mjs",
+    "scripts": {
+        "build": "node build.mjs",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.490.0",
+        "@aws-sdk/lib-dynamodb": "^3.490.0"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.131",
+        "@types/node": "^20.10.6",
+        "typescript": "^5.3.3",
+        "vitest": "^2.1.8"
+    },
+    "type": "module"
+}

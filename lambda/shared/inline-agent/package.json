@@ -1,0 +1,23 @@
+{
+    "name": "inline-agent",
+    "version": "1.0.0",
+    "description": "Bedrock Inline Agent Service — invoke InvokeInlineAgent with streaming response parsing",
+    "main": "dist/index.mjs",
+    "scripts": {
+        "build": "node build.mjs",
+        "build:tsc": "tsc",
+        "clean": "rm -rf dist",
+        "test": "vitest --run"
+    },
+    "dependencies": {
+        "@aws-sdk/client-bedrock-agent-runtime": "^3.621.0",
+        "@aws-sdk/client-dynamodb": "^3.621.0",
+        "@aws-sdk/lib-dynamodb": "^3.621.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.12.12",
+        "typescript": "^5.4.5",
+        "vitest": "^1.6.0"
+    },
+    "type": "module"
+}

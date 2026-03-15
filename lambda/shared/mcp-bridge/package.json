@@ -1,0 +1,21 @@
+{
+    "name": "mcp-bridge",
+    "version": "1.0.0",
+    "description": "MCP Client Bridge — connect to MCP servers, discover tools, and execute tool calls",
+    "main": "dist/index.mjs",
+    "scripts": {
+        "build": "node build.mjs",
+        "build:tsc": "tsc",
+        "clean": "rm -rf dist",
+        "test": "vitest --run"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.12.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.12.12",
+        "typescript": "^5.4.5",
+        "vitest": "^1.6.0"
+    },
+    "type": "module"
+}

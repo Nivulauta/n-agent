@@ -676,6 +676,234 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 - [x] 26. Final checkpoint - System ready for production
   - Ensure all tests pass, ask the user if questions arise.
 
+
+- [ ] 27. Add VPC Endpoint for Bedrock Agent Runtime
+  - [x] 27.1 Add `bedrock-agent-runtime` VPC interface endpoint to networking module
+    - Add `aws_vpc_endpoint.bedrock_agent_runtime` resource in `terraform/modules/networking/main.tf`
+    - Use service name `com.amazonaws.${region}.bedrock-agent-runtime`
+    - Attach to private subnets and VPC endpoints security group
+    - Enable private DNS
+    - Export endpoint ID in outputs
+    - _Requirements: 13.1, 13.4_
+
+  - [x] 27.2 Add IAM permissions for InvokeInlineAgent
+    - Add `bedrock:InvokeInlineAgent` to the message handler Lambda's IAM role
+    - Scope resource to `arn:aws:bedrock:*:*:*` (inline agents have no specific ARN)
+    - _Requirements: 1.5, 13.3_
+
+
+- [ ] 28. Implement MCP Tool Registry (DynamoDB + REST API)
+  - [x] 28.1 Create MCPServerConfig DynamoDB table with Terraform
+    - Add table definition to `terraform/modules/database/main.tf`
+    - PK: `MCP#<serverName>`, SK: `CONFIG`
+    - Enable on-demand billing
+    - Add IAM read/write permissions for the message handler Lambda role
+    - _Requirements: 13.1, 13.4_
+
+  - [x] 28.2 Implement MCP Tool Registry shared module
+    - Create `lambda/shared/mcp-registry/` module
+    - Implement `listServers()`, `getServer()`, `upsertServer()`, `deleteServer()`, `getEnabledServers()`
+    - Use DynamoDB DocumentClient for CRUD operations
+    - Cache enabled server configs in Lambda memory with 5-minute TTL
+    - _Requirements: 16.1_
+
+  - [x] 28.3 Create REST API endpoints for MCP server management
+    - Implement `GET /agent/mcp-servers` — list all server configs
+    - Implement `PUT /agent/mcp-servers/{name}` — create/update a server config
+    - Implement `DELETE /agent/mcp-servers/{name}` — remove a server config
+    - Add Lambda handler and API Gateway routes in Terraform
+    - Restrict to admin role via Lambda Authorizer
+    - _Requirements: 16.1_
+
+  - [x] 28.4 Seed built-in server configs on deployment
+    - Create a seed script or Terraform `null_resource` that inserts default configs
+    - Seed `DocumentTools` as a built-in config (marked `builtin: true`)
+    - _Requirements: 16.1_
+
+  - [x] 28.5 Write unit tests for MCP Tool Registry
+    - Test CRUD operations with mocked DynamoDB
+    - Test caching behavior (memory TTL)
+    - Test `getEnabledServers` filtering
+    - _Requirements: 16.1_
+
+
+- [ ] 29. Implement MCP Client Bridge
+  - [x] 29.1 Create MCP Client Bridge shared module
+    - Create `lambda/shared/mcp-bridge/` module
+    - Add `@modelcontextprotocol/sdk` dependency
+    - Implement `initialize()` — connect to all configured MCP servers
+    - Implement `discoverTools()` — call `tools/list` on each connected server
+    - Implement `executeTool()` — route tool call to the correct MCP server and return result
+    - Implement `disconnect()` — clean up all connections
+    - _Requirements: 15.1_
+
+  - [x] 29.2 Implement MCP-to-Bedrock schema translation
+    - Implement `toActionGroups()` — convert MCP tool schemas to Bedrock `ActionGroupConfig[]`
+    - Map MCP `inputSchema.properties` → Bedrock `FunctionDefinition.parameters`
+    - Map MCP `inputSchema.required` → Bedrock parameter `required` flags
+    - Each MCP server becomes one action group (server name = action group name)
+    - Apply `toolFilter` from config to exclude unwanted tools
+    - _Requirements: 15.1_
+
+  - [x] 29.3 Implement transport support
+    - Support `stdio` transport: spawn MCP server as child process using `StdioClientTransport`
+    - Support `sse` transport: connect to remote MCP server using `SSEClientTransport`
+    - Support `streamable-http` transport: connect using `StreamableHTTPClientTransport`
+    - Pass `env` from config to child process environment for stdio
+    - _Requirements: 15.1_
+
+  - [x] 29.4 Write unit tests for MCP Client Bridge
+    - Test tool discovery with mock MCP server
+    - Test schema translation (MCP → Bedrock action group)
+    - Test tool execution routing
+    - Test `toolFilter` behavior
+    - Test error handling for unreachable servers
+    - _Requirements: 15.1_
+
+
+- [ ] 30. Implement Inline Agent Service
+  - [x] 30.1 Create Inline Agent Service shared module
+    - Create `lambda/shared/inline-agent/` module
+    - Add `@aws-sdk/client-bedrock-agent-runtime` dependency
+    - Implement `invokeAgent()` using `InvokeInlineAgentCommand`
+    - Parse streaming response: handle `chunk`, `trace`, `returnControl`, and `files` event types
+    - Yield `AgentResponseChunk` objects for each event
+    - _Requirements: 14.1_
+
+  - [x] 30.2 Implement RETURN_CONTROL tool execution loop
+    - When agent returns control with a tool invocation:
+      1. Identify whether the tool belongs to a built-in action group or an MCP action group
+      2. For built-in tools: execute directly using existing shared modules (RAGSystem, DynamoDB)
+      3. For MCP tools: delegate to MCP Client Bridge `executeTool()`
+      4. Format the result as `returnControlInvocationResults`
+      5. Re-invoke `InvokeInlineAgent` with the results to continue the agent loop
+    - Handle max iteration limit (default: 10 tool calls per turn) to prevent runaway loops
+    - _Requirements: 14.1, 17.1_
+
+  - [x] 30.3 Implement built-in tool executors
+    - `SearchDocuments`: wrap `RAGSystem.retrieveContext()` — return formatted chunks with citations
+    - `GetDocumentMetadata`: query DynamoDB `DocumentMetadata` table by documentId
+    - `ListUserDocuments`: query DynamoDB `DocumentMetadata` table by userId (GSI)
+    - Format results as text content for the agent
+    - _Requirements: 17.1_
+
+  - [x] 30.4 Implement agent instruction builder
+    - Build the agent `instruction` string dynamically based on:
+      - Base system prompt (document assistant persona)
+      - Available tool descriptions (both built-in and MCP)
+      - User context (userId, available documents)
+    - Keep instruction under 4096 characters (Bedrock limit)
+    - _Requirements: 14.1_
+
+  - [x] 30.5 Write unit tests for Inline Agent Service
+    - Test streaming response parsing
+    - Test RETURN_CONTROL loop with mock tool execution
+    - Test max iteration limit enforcement
+    - Test built-in tool executors with mocked dependencies
+    - Test instruction builder output
+    - _Requirements: 14.1, 17.1_
+
+
+- [ ] 31. Update Query Router for agent classification
+  - [ ] 31.1 Add `agent` route type to query classifier
+    - Update `QueryClassification` interface to include `routeType: 'rag' | 'direct' | 'agent'`
+    - Add heuristic rules for agent routing:
+      - Multi-step queries ("compare document A with document B")
+      - Explicit agent requests ("use tools to...", "search and then...")
+      - Queries requiring multiple document lookups
+      - Queries asking about document metadata ("when was X uploaded?")
+    - Gate agent routing behind `USE_BEDROCK_AGENT` env var
+    - _Requirements: 7.5_
+
+  - [ ] 31.2 Update Claude fallback classifier for agent routing
+    - Update the classification prompt to include `agent` as a possible route
+    - Provide examples of agent-eligible queries in the prompt
+    - _Requirements: 7.5_
+
+  - [ ] 31.3 Write unit tests for agent classification
+    - Test agent routing for multi-step queries
+    - Test agent routing disabled when feature flag is off
+    - Test backward compatibility (existing rag/direct classification unchanged)
+    - _Requirements: 7.5_
+
+
+- [ ] 32. Integrate agent path into message handler
+  - [ ] 32.1 Add agent execution path to `processChatMessage`
+    - After query classification, if `routeType === 'agent'`:
+      1. Load enabled MCP server configs from registry
+      2. Initialize MCP Client Bridge and discover tools
+      3. Build action groups (built-in + MCP-derived)
+      4. Invoke Inline Agent Service with streaming
+      5. Stream `AgentResponseChunk` text to WebSocket client
+      6. Optionally stream `agent_trace` events for debugging
+    - Wrap in circuit breaker; fall back to standard RAG pipeline on failure
+    - _Requirements: 14.1, 14.2, 14.4, 17.1_
+
+  - [ ] 32.2 Add agent-specific environment variables
+    - `USE_BEDROCK_AGENT` — feature flag (default: `false`)
+    - `AGENT_FOUNDATION_MODEL` — model ID override (default: same as existing)
+    - `AGENT_MAX_ITERATIONS` — max tool calls per turn (default: `10`)
+    - `MCP_CONFIG_TABLE` — DynamoDB table name for MCP server configs
+    - Add to Terraform Lambda environment configuration
+    - _Requirements: 13.2_
+
+  - [ ] 32.3 Add audit logging for agent invocations
+    - Log agent invocation start/end with tool usage details
+    - Log each tool call (name, parameters, duration, success/failure)
+    - Log total agent turn duration and iteration count
+    - _Requirements: 11.1, 11.3_
+
+  - [ ] 32.4 Write integration tests for agent path
+    - Test end-to-end agent flow with mock MCP server
+    - Test fallback to RAG when agent fails
+    - Test feature flag gating
+    - Test agent trace streaming
+    - _Requirements: 14.1, 14.2_
+
+
+- [ ] 33. Terraform updates for agent infrastructure
+  - [ ] 33.1 Create `terraform/modules/agent/` module
+    - Define MCPServerConfig DynamoDB table
+    - Define Lambda function for MCP server management REST API
+    - Define API Gateway routes for `/agent/mcp-servers`
+    - Define IAM roles with `bedrock:InvokeInlineAgent` permission
+    - Wire module into root `terraform/main.tf`
+    - _Requirements: 13.1, 13.3, 13.4_
+
+  - [ ] 33.2 Update message handler Lambda configuration
+    - Add new environment variables (`USE_BEDROCK_AGENT`, `MCP_CONFIG_TABLE`, etc.)
+    - Increase Lambda timeout to 120s (agent turns can involve multiple tool calls)
+    - Increase Lambda memory to 1536MB (MCP client + agent SDK overhead)
+    - Add `bedrock:InvokeInlineAgent` to IAM policy
+    - _Requirements: 13.2, 13.3_
+
+  - [ ] 33.3 Add VPC endpoint for Bedrock Agent Runtime
+    - Add interface endpoint for `bedrock-agent-runtime` service
+    - Attach to existing private subnets and VPC endpoints security group
+    - _Requirements: 13.4_
+
+
+- [ ] 34. Checkpoint — Agent integration functional
+  - [ ] 34.1 Verify agent path end-to-end
+    - Deploy with `USE_BEDROCK_AGENT=true`
+    - Send a multi-step query and verify agent uses tools
+    - Verify streaming response arrives via WebSocket
+    - Verify agent trace events are logged
+    - Verify fallback to RAG when agent is disabled
+    - _Requirements: All agent requirements_
+
+  - [ ] 34.2 Verify MCP server management
+    - Add a new MCP server config via REST API
+    - Verify the agent picks up the new tools on next invocation
+    - Disable the server and verify tools are no longer available
+    - Delete the server config and verify cleanup
+    - _Requirements: 16.1_
+
+  - [ ] 34.3 Run all existing tests to verify no regressions
+    - Execute full test suite
+    - Verify existing RAG pipeline still works when agent is disabled
+    - _Requirements: All existing requirements_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for faster MVP delivery

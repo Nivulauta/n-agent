@@ -150,22 +150,24 @@ module "auth" {
 module "websocket_handlers" {
   source = "./modules/websocket-handlers"
 
-  environment                 = var.environment
-  connections_table_name      = module.database.connections_table_name
-  connections_table_arn       = module.database.connections_table_arn
-  websocket_api_id            = module.websocket.websocket_api_id
-  websocket_api_execution_arn = module.websocket.websocket_api_execution_arn
-  kms_key_arn                 = module.security.kms_key_arn
-  rate_limits_table_name      = module.database.rate_limits_table_name
-  rate_limits_table_arn       = module.database.rate_limits_table_arn
-  chat_history_table_name     = module.database.chat_history_table_name
-  chat_history_table_arn      = module.database.chat_history_table_arn
-  opensearch_endpoint         = module.opensearch.endpoint
-  opensearch_domain_arn       = module.opensearch.domain_arn
-  cache_endpoint              = module.cache.redis_endpoint
-  cache_port                  = module.cache.redis_port
-  private_subnet_ids          = module.networking.private_subnet_ids
-  lambda_security_group_id    = module.security.lambda_security_group_id
+  environment                  = var.environment
+  connections_table_name       = module.database.connections_table_name
+  connections_table_arn        = module.database.connections_table_arn
+  websocket_api_id             = module.websocket.websocket_api_id
+  websocket_api_execution_arn  = module.websocket.websocket_api_execution_arn
+  kms_key_arn                  = module.security.kms_key_arn
+  rate_limits_table_name       = module.database.rate_limits_table_name
+  rate_limits_table_arn        = module.database.rate_limits_table_arn
+  chat_history_table_name      = module.database.chat_history_table_name
+  chat_history_table_arn       = module.database.chat_history_table_arn
+  opensearch_endpoint          = module.opensearch.endpoint
+  opensearch_domain_arn        = module.opensearch.domain_arn
+  cache_endpoint               = module.cache.redis_endpoint
+  cache_port                   = module.cache.redis_port
+  private_subnet_ids           = module.networking.private_subnet_ids
+  lambda_security_group_id     = module.security.lambda_security_group_id
+  mcp_server_config_table_name = module.database.mcp_server_config_table_name
+  mcp_server_config_table_arn  = module.database.mcp_server_config_table_arn
 }
 
 module "websocket" {
@@ -181,6 +183,16 @@ module "websocket" {
   disconnect_handler_name  = module.websocket_handlers.disconnect_function_name
   message_handler_arn      = module.websocket_handlers.message_function_arn
   message_handler_name     = module.websocket_handlers.message_function_name
+}
+
+module "agent_api" {
+  source = "./modules/agent-api"
+
+  environment                  = var.environment
+  mcp_server_config_table_name = module.database.mcp_server_config_table_name
+  mcp_server_config_table_arn  = module.database.mcp_server_config_table_arn
+  kms_key_arn                  = module.security.kms_key_arn
+  cors_origin                  = module.frontend.frontend_url
 }
 
 module "rest_api" {
@@ -202,6 +214,8 @@ module "rest_api" {
   document_delete_invoke_arn    = module.document_management.delete_invoke_arn
   chat_history_function_name    = module.chat_history.lambda_function_name
   chat_history_invoke_arn       = module.chat_history.lambda_invoke_arn
+  mcp_servers_function_name     = module.agent_api.mcp_servers_function_name
+  mcp_servers_invoke_arn        = module.agent_api.mcp_servers_invoke_arn
   cors_origin                   = module.frontend.frontend_url
 }
 
