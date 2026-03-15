@@ -13,6 +13,7 @@ export interface ChatMessage {
         retrievedChunks?: string[];
         tokenCount?: number;
         latency?: number;
+        agentRoute?: boolean;
     };
 }
 
@@ -27,6 +28,7 @@ export interface ChatHistoryRecord {
         tokenCount?: number;
         latency?: number;
         cached?: boolean;
+        agentRoute?: boolean;
     };
     ttl: number; // Expires after 90 days
 }

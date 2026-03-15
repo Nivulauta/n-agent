@@ -87,6 +87,11 @@ if (existsSync(nodeModulesDest)) {
 
 cpSync(nodeModulesSource, nodeModulesDest, { recursive: true });
 
+// Step 8: Create package.json in dist folder to mark as ES module
+console.log('\n📝 Creating package.json in dist folder...');
+writeFileSync(join(__dirname, 'dist', 'package.json'), JSON.stringify({ type: 'module' }, null, 2), 'utf-8');
+console.log('✅ Created dist/package.json');
+
 console.log('\n✅ Build complete!');
 console.log('📁 Output: dist/index.mjs');
 console.log('📦 Dependencies: dist/node_modules/');

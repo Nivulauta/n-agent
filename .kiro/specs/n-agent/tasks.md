@@ -677,7 +677,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
   - Ensure all tests pass, ask the user if questions arise.
 
 
-- [ ] 27. Add VPC Endpoint for Bedrock Agent Runtime
+- [x] 27. Add VPC Endpoint for Bedrock Agent Runtime
   - [x] 27.1 Add `bedrock-agent-runtime` VPC interface endpoint to networking module
     - Add `aws_vpc_endpoint.bedrock_agent_runtime` resource in `terraform/modules/networking/main.tf`
     - Use service name `com.amazonaws.${region}.bedrock-agent-runtime`
@@ -692,7 +692,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 1.5, 13.3_
 
 
-- [ ] 28. Implement MCP Tool Registry (DynamoDB + REST API)
+- [x] 28. Implement MCP Tool Registry (DynamoDB + REST API)
   - [x] 28.1 Create MCPServerConfig DynamoDB table with Terraform
     - Add table definition to `terraform/modules/database/main.tf`
     - PK: `MCP#<serverName>`, SK: `CONFIG`
@@ -727,7 +727,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 16.1_
 
 
-- [ ] 29. Implement MCP Client Bridge
+- [x] 29. Implement MCP Client Bridge
   - [x] 29.1 Create MCP Client Bridge shared module
     - Create `lambda/shared/mcp-bridge/` module
     - Add `@modelcontextprotocol/sdk` dependency
@@ -761,7 +761,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - _Requirements: 15.1_
 
 
-- [ ] 30. Implement Inline Agent Service
+- [x] 30. Implement Inline Agent Service
   - [x] 30.1 Create Inline Agent Service shared module
     - Create `lambda/shared/inline-agent/` module
     - Add `@aws-sdk/client-bedrock-agent-runtime` dependency
@@ -805,7 +805,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 
 
 - [ ] 31. Update Query Router for agent classification
-  - [ ] 31.1 Add `agent` route type to query classifier
+  - [x] 31.1 Add `agent` route type to query classifier
     - Update `QueryClassification` interface to include `routeType: 'rag' | 'direct' | 'agent'`
     - Add heuristic rules for agent routing:
       - Multi-step queries ("compare document A with document B")
@@ -815,12 +815,12 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Gate agent routing behind `USE_BEDROCK_AGENT` env var
     - _Requirements: 7.5_
 
-  - [ ] 31.2 Update Claude fallback classifier for agent routing
+  - [x] 31.2 Update Claude fallback classifier for agent routing
     - Update the classification prompt to include `agent` as a possible route
     - Provide examples of agent-eligible queries in the prompt
     - _Requirements: 7.5_
 
-  - [ ] 31.3 Write unit tests for agent classification
+  - [x] 31.3 Write unit tests for agent classification
     - Test agent routing for multi-step queries
     - Test agent routing disabled when feature flag is off
     - Test backward compatibility (existing rag/direct classification unchanged)
@@ -828,7 +828,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 
 
 - [ ] 32. Integrate agent path into message handler
-  - [ ] 32.1 Add agent execution path to `processChatMessage`
+  - [x] 32.1 Add agent execution path to `processChatMessage`
     - After query classification, if `routeType === 'agent'`:
       1. Load enabled MCP server configs from registry
       2. Initialize MCP Client Bridge and discover tools
@@ -839,7 +839,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Wrap in circuit breaker; fall back to standard RAG pipeline on failure
     - _Requirements: 14.1, 14.2, 14.4, 17.1_
 
-  - [ ] 32.2 Add agent-specific environment variables
+  - [x] 32.2 Add agent-specific environment variables
     - `USE_BEDROCK_AGENT` — feature flag (default: `false`)
     - `AGENT_FOUNDATION_MODEL` — model ID override (default: same as existing)
     - `AGENT_MAX_ITERATIONS` — max tool calls per turn (default: `10`)
@@ -853,7 +853,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Log total agent turn duration and iteration count
     - _Requirements: 11.1, 11.3_
 
-  - [ ] 32.4 Write integration tests for agent path
+  - [x] 32.4 Write integration tests for agent path
     - Test end-to-end agent flow with mock MCP server
     - Test fallback to RAG when agent fails
     - Test feature flag gating
@@ -862,7 +862,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
 
 
 - [ ] 33. Terraform updates for agent infrastructure
-  - [ ] 33.1 Create `terraform/modules/agent/` module
+  - [x] 33.1 Create `terraform/modules/agent/` module
     - Define MCPServerConfig DynamoDB table
     - Define Lambda function for MCP server management REST API
     - Define API Gateway routes for `/agent/mcp-servers`
@@ -870,21 +870,21 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Wire module into root `terraform/main.tf`
     - _Requirements: 13.1, 13.3, 13.4_
 
-  - [ ] 33.2 Update message handler Lambda configuration
+  - [x] 33.2 Update message handler Lambda configuration
     - Add new environment variables (`USE_BEDROCK_AGENT`, `MCP_CONFIG_TABLE`, etc.)
     - Increase Lambda timeout to 120s (agent turns can involve multiple tool calls)
     - Increase Lambda memory to 1536MB (MCP client + agent SDK overhead)
     - Add `bedrock:InvokeInlineAgent` to IAM policy
     - _Requirements: 13.2, 13.3_
 
-  - [ ] 33.3 Add VPC endpoint for Bedrock Agent Runtime
+  - [x] 33.3 Add VPC endpoint for Bedrock Agent Runtime
     - Add interface endpoint for `bedrock-agent-runtime` service
     - Attach to existing private subnets and VPC endpoints security group
     - _Requirements: 13.4_
 
 
 - [ ] 34. Checkpoint — Agent integration functional
-  - [ ] 34.1 Verify agent path end-to-end
+  - [x] 34.1 Verify agent path end-to-end
     - Deploy with `USE_BEDROCK_AGENT=true`
     - Send a multi-step query and verify agent uses tools
     - Verify streaming response arrives via WebSocket
@@ -892,7 +892,7 @@ The architecture is serverless-first using AWS Lambda, API Gateway, S3, OpenSear
     - Verify fallback to RAG when agent is disabled
     - _Requirements: All agent requirements_
 
-  - [ ] 34.2 Verify MCP server management
+  - [-] 34.2 Verify MCP server management
     - Add a new MCP server config via REST API
     - Verify the agent picks up the new tools on next invocation
     - Disable the server and verify tools are no longer available

@@ -168,6 +168,9 @@ module "websocket_handlers" {
   lambda_security_group_id     = module.security.lambda_security_group_id
   mcp_server_config_table_name = module.database.mcp_server_config_table_name
   mcp_server_config_table_arn  = module.database.mcp_server_config_table_arn
+  use_bedrock_agent            = var.use_bedrock_agent
+  agent_foundation_model       = var.agent_foundation_model
+  agent_max_iterations         = var.agent_max_iterations
 }
 
 module "websocket" {
@@ -193,6 +196,19 @@ module "agent_api" {
   mcp_server_config_table_arn  = module.database.mcp_server_config_table_arn
   kms_key_arn                  = module.security.kms_key_arn
   cors_origin                  = module.frontend.frontend_url
+}
+
+module "agent" {
+  source = "./modules/agent"
+
+  environment                  = var.environment
+  mcp_server_config_table_name = module.database.mcp_server_config_table_name
+  mcp_server_config_table_arn  = module.database.mcp_server_config_table_arn
+  kms_key_arn                  = module.security.kms_key_arn
+  cors_origin                  = module.frontend.frontend_url
+  use_bedrock_agent            = var.use_bedrock_agent
+  agent_foundation_model       = var.agent_foundation_model
+  agent_max_iterations         = var.agent_max_iterations
 }
 
 module "rest_api" {

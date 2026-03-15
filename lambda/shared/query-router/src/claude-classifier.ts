@@ -5,7 +5,7 @@
  * uses Claude via Bedrock to make a more informed classification decision.
  */
 
-import { QueryClassification, Message } from './types';
+import { QueryClassification, RouteType, Message } from './types';
 
 /**
  * Minimal Bedrock service interface for classification
@@ -20,25 +20,36 @@ export interface BedrockClassifierService {
     }): Promise<string>;
 }
 
-const CLASSIFICATION_SYSTEM_PROMPT = `You are a query classification assistant. Your job is to determine whether a user's query requires retrieving information from documents (RAG retrieval) or can be answered directly by the AI assistant without document lookup.
+const CLASSIFICATION_SYSTEM_PROMPT = `You are a query classification assistant. Your job is to determine the best execution route for a user's query. There are three possible routes:
 
-Queries that REQUIRE retrieval (answer "YES"):
-- Questions about specific documents, files, or PDFs
-- Questions asking for information that would be in organizational documents
-- Questions referencing "the document", "the file", "uploaded content"
-- Questions about specific facts, data, or details that need verification
-- Questions asking to find, search, or look up information
+1. "rag" — Retrieve information from uploaded documents, then generate a response using that context.
+2. "direct" — Answer directly using the AI assistant's general knowledge, no document lookup needed.
+3. "agent" — Use multi-step reasoning with tools (e.g., searching documents, comparing results, performing multiple lookups, or using external tools).
 
-Queries that DO NOT require retrieval (answer "NO"):
-- General knowledge questions that don't reference documents
-- Conversational exchanges (greetings, thanks, acknowledgments)
-- Questions about the assistant's capabilities
-- Creative tasks (writing, brainstorming) that don't need document context
-- Follow-up clarifications about previous responses
+Route to "rag" when:
+- The query asks about specific documents, files, or PDFs
+- The query asks for information that would be in organizational documents
+- The query references "the document", "the file", "uploaded content"
+- The query asks for specific facts, data, or details that need verification from documents
+- The query asks to find, search, or look up information in documents
+
+Route to "direct" when:
+- The query is a general knowledge question that doesn't reference documents
+- The query is a conversational exchange (greetings, thanks, acknowledgments)
+- The query asks about the assistant's capabilities
+- The query is a creative task (writing, brainstorming) that doesn't need document context
+- The query is a follow-up clarification about a previous response
+
+Route to "agent" when:
+- The query requires comparing information across multiple documents (e.g., "Compare the Q1 and Q2 reports")
+- The query involves multi-step reasoning or chained lookups (e.g., "Find the budget for Project X, then check if it exceeds the policy limit")
+- The query explicitly asks to use tools or perform actions (e.g., "Use the calculator to sum up expenses")
+- The query requires gathering and synthesizing data from several sources (e.g., "Summarize all documents uploaded this month")
+- The query asks the assistant to perform a workflow or sequence of operations (e.g., "List my documents and then search the newest one for risk factors")
 
 Respond with ONLY a JSON object in this exact format:
 {
-  "requiresRetrieval": true or false,
+  "routeType": "rag" or "direct" or "agent",
   "confidence": 0.0 to 1.0,
   "reasoning": "brief explanation of your decision"
 }`;
@@ -88,6 +99,7 @@ export async function classifyWithClaude(
         logError('Claude classification failed:', error);
         return {
             requiresRetrieval: true,
+            routeType: 'rag' as RouteType,
             confidence: 0.5,
             reasoning: 'Claude classification failed, defaulting to retrieval',
             suggestedK: 5,
@@ -112,10 +124,17 @@ function parseClaudeResponse(response: string, query: string): QueryClassificati
 
         const parsed = JSON.parse(jsonMatch[0]);
 
-        // Validate required fields
-        if (typeof parsed.requiresRetrieval !== 'boolean') {
-            throw new Error('Invalid requiresRetrieval field');
+        // Determine route type — prefer explicit routeType, fall back to requiresRetrieval
+        let routeType: RouteType;
+        if (parsed.routeType === 'agent' || parsed.routeType === 'rag' || parsed.routeType === 'direct') {
+            routeType = parsed.routeType;
+        } else if (typeof parsed.requiresRetrieval === 'boolean') {
+            routeType = parsed.requiresRetrieval ? 'rag' : 'direct';
+        } else {
+            throw new Error('Invalid response: missing routeType and requiresRetrieval');
         }
+
+        const requiresRetrieval = routeType === 'rag' || routeType === 'agent';
 
         const confidence = typeof parsed.confidence === 'number'
             ? Math.max(0, Math.min(1, parsed.confidence))
@@ -126,10 +145,11 @@ function parseClaudeResponse(response: string, query: string): QueryClassificati
             : 'Claude classification';
 
         // Determine suggested k based on query complexity
-        const suggestedK = determineOptimalKForClaude(parsed.requiresRetrieval, query);
+        const suggestedK = determineOptimalKForClaude(requiresRetrieval, query);
 
         return {
-            requiresRetrieval: parsed.requiresRetrieval,
+            requiresRetrieval,
+            routeType,
             confidence,
             reasoning,
             suggestedK,
@@ -142,6 +162,7 @@ function parseClaudeResponse(response: string, query: string): QueryClassificati
         // Fallback: default to retrieval for safety
         return {
             requiresRetrieval: true,
+            routeType: 'rag' as RouteType,
             confidence: 0.5,
             reasoning: 'Failed to parse Claude response, defaulting to retrieval',
             suggestedK: 5,

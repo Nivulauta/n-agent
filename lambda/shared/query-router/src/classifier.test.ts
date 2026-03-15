@@ -2,7 +2,7 @@
  * Unit tests for query classification and dynamic k selection
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { classifyQuery } from './classifier';
 import { Message } from './types';
 
@@ -302,6 +302,120 @@ describe('Query Classification', () => {
         it('should mention conversational patterns in reasoning', () => {
             const result = classifyQuery('Thank you');
             expect(result.reasoning).toContain('conversational pattern');
+        });
+    });
+
+    describe('Route Type Classification', () => {
+        it('should return routeType "direct" for conversational queries', () => {
+            const queries = ['Hello', 'Thank you', 'Goodbye'];
+            for (const query of queries) {
+                const result = classifyQuery(query);
+                expect(result.routeType).toBe('direct');
+            }
+        });
+
+        it('should return routeType "rag" for document queries when agent is disabled', () => {
+            const result = classifyQuery('What is in the document?');
+            expect(result.routeType).toBe('rag');
+        });
+
+        it('should return routeType "direct" for empty queries', () => {
+            const result = classifyQuery('');
+            expect(result.routeType).toBe('direct');
+        });
+
+        describe('Agent routing (USE_BEDROCK_AGENT=true)', () => {
+            beforeEach(() => {
+                vi.stubEnv('USE_BEDROCK_AGENT', 'true');
+            });
+
+            afterEach(() => {
+                vi.unstubAllEnvs();
+            });
+
+            it('should route multi-step compare queries to agent', () => {
+                const queries = [
+                    'Compare document A with document B',
+                    'Contrast the report from Q1 against the report from Q2',
+                    'Diff the PDF from January and the PDF from March',
+                ];
+                for (const query of queries) {
+                    const result = classifyQuery(query);
+                    expect(result.routeType).toBe('agent');
+                    expect(result.reasoning).toContain('agent pattern');
+                }
+            });
+
+            it('should route explicit tool requests to agent', () => {
+                const queries = [
+                    'Use tools to find the answer',
+                    'Search and then summarize the results',
+                    'Find and then compare the data',
+                ];
+                for (const query of queries) {
+                    const result = classifyQuery(query);
+                    expect(result.routeType).toBe('agent');
+                }
+            });
+
+            it('should route multi-document lookup queries to agent', () => {
+                const queries = [
+                    'Search across all documents for revenue data',
+                    'Find information between the two reports',
+                    'Look at each document for compliance issues',
+                ];
+                for (const query of queries) {
+                    const result = classifyQuery(query);
+                    expect(result.routeType).toBe('agent');
+                }
+            });
+
+            it('should route document metadata queries to agent', () => {
+                const queries = [
+                    'When was the policy document uploaded?',
+                    'Who uploaded the quarterly report?',
+                    'How many pages does the PDF have?',
+                    'List my uploaded documents',
+                    'Show all my files',
+                ];
+                for (const query of queries) {
+                    const result = classifyQuery(query);
+                    expect(result.routeType).toBe('agent');
+                }
+            });
+
+            it('should still route simple document queries to rag', () => {
+                const result = classifyQuery('What is in the document?');
+                expect(result.routeType).toBe('rag');
+            });
+
+            it('should still route conversational queries to direct', () => {
+                const result = classifyQuery('Hello');
+                expect(result.routeType).toBe('direct');
+            });
+        });
+
+        describe('Agent routing disabled (USE_BEDROCK_AGENT unset)', () => {
+            beforeEach(() => {
+                vi.stubEnv('USE_BEDROCK_AGENT', 'false');
+            });
+
+            afterEach(() => {
+                vi.unstubAllEnvs();
+            });
+
+            it('should never route to agent when feature flag is off', () => {
+                const queries = [
+                    'Compare document A with document B',
+                    'Use tools to find the answer',
+                    'When was the policy uploaded?',
+                    'List my uploaded documents',
+                ];
+                for (const query of queries) {
+                    const result = classifyQuery(query);
+                    expect(result.routeType).not.toBe('agent');
+                }
+            });
         });
     });
 

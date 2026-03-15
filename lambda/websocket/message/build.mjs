@@ -75,7 +75,10 @@ const sharedModules = [
     'cache',
     'bedrock',
     'circuit-breaker',
-    'metrics'
+    'metrics',
+    'inline-agent',
+    'mcp-registry',
+    'mcp-bridge'
 ];
 
 for (const moduleName of sharedModules) {
@@ -179,6 +182,49 @@ indexContent = indexContent.replace(
 indexContent = indexContent.replace(
     /from ['"]\.\.\/\.\.\/\.\.\/shared\/metrics\/dist\/index\.mjs['"]/g,
     "from './shared/metrics/index.mjs'"
+);
+
+// Inline Agent imports
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/inline-agent\/src\/inline-agent\.js['"]/g,
+    "from './shared/inline-agent/inline-agent.mjs'"
+);
+
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/inline-agent\/src\/instruction-builder\.js['"]/g,
+    "from './shared/inline-agent/instruction-builder.mjs'"
+);
+
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/inline-agent\/src\/builtin-tools\.js['"]/g,
+    "from './shared/inline-agent/builtin-tools.mjs'"
+);
+
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/inline-agent\/src\/types\.js['"]/g,
+    "from './shared/inline-agent/types.mjs'"
+);
+
+// MCP Registry imports
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/mcp-registry\/src\/registry\.js['"]/g,
+    "from './shared/mcp-registry/registry.mjs'"
+);
+
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/mcp-registry\/src\/types\.js['"]/g,
+    "from './shared/mcp-registry/types.mjs'"
+);
+
+// MCP Bridge imports
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/mcp-bridge\/src\/bridge\.js['"]/g,
+    "from './shared/mcp-bridge/bridge.mjs'"
+);
+
+indexContent = indexContent.replace(
+    /from ['"]\.\.\/\.\.\/\.\.\/shared\/mcp-bridge\/src\/types\.js['"]/g,
+    "from './shared/mcp-bridge/types.mjs'"
 );
 
 writeFileSync(indexMjsPath, indexContent, 'utf-8');

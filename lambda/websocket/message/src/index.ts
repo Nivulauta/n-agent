@@ -12,6 +12,12 @@ import { CacheLayer } from '../../../shared/cache/src/cache.js';
 import { BedrockService } from '../../../shared/bedrock/src/bedrock.js';
 import { CircuitBreaker, CircuitBreakerError } from '../../../shared/circuit-breaker/src/circuit-breaker.js';
 import { emitExecutionDuration, emitQueryLatency, emitTokenUsage, flushMetrics } from '../../../shared/metrics/dist/index.mjs';
+import { InlineAgentService } from '../../../shared/inline-agent/src/inline-agent.js';
+import { buildAgentInstruction } from '../../../shared/inline-agent/src/instruction-builder.js';
+import { createBuiltinToolExecutor, BUILTIN_ACTION_GROUP } from '../../../shared/inline-agent/src/builtin-tools.js';
+import type { ActionGroupConfig, AgentResponseChunk, ToolExecutionResult } from '../../../shared/inline-agent/src/types.js';
+import { MCPToolRegistry } from '../../../shared/mcp-registry/src/registry.js';
+import { MCPClientBridge } from '../../../shared/mcp-bridge/src/bridge.js';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -22,6 +28,10 @@ const KMS_KEY_ID = process.env.KMS_KEY_ID || '';
 const OPENSEARCH_ENDPOINT = process.env.OPENSEARCH_ENDPOINT || '';
 const CACHE_HOST = process.env.CACHE_HOST || '';
 const CACHE_PORT = parseInt(process.env.CACHE_PORT || '6379', 10);
+const DOCUMENT_METADATA_TABLE = process.env.DOCUMENT_METADATA_TABLE || 'DocumentMetadata';
+const MCP_SERVER_CONFIG_TABLE = process.env.MCP_SERVER_CONFIG_TABLE || '';
+const AGENT_FOUNDATION_MODEL = process.env.AGENT_FOUNDATION_MODEL || 'anthropic.claude-haiku-4-5';
+const AGENT_MAX_ITERATIONS = parseInt(process.env.AGENT_MAX_ITERATIONS || '10', 10);
 // AWS_REGION is automatically available in Lambda environment
 
 const rateLimiter = new RateLimiter();
@@ -31,6 +41,8 @@ let chatHistoryStore: ChatHistoryStore | null = null;
 let ragSystem: RAGSystem | null = null;
 let cacheLayer: CacheLayer | null = null;
 let bedrockService: BedrockService | null = null;
+let inlineAgentService: InlineAgentService | null = null;
+let mcpToolRegistry: MCPToolRegistry | null = null;
 
 // Circuit breakers for external services (Requirement 14.4)
 const bedrockCircuitBreaker = new CircuitBreaker({
@@ -52,6 +64,13 @@ const cacheCircuitBreaker = new CircuitBreaker({
     successThreshold: 2,
     timeout: 30000, // 30 seconds
     name: 'cache-layer',
+});
+
+const agentCircuitBreaker = new CircuitBreaker({
+    failureThreshold: 5,
+    successThreshold: 2,
+    timeout: 60000, // 60 seconds
+    name: 'inline-agent',
 });
 
 interface ChatMessagePayload {
@@ -389,6 +408,16 @@ function initializeServices(): void {
             // region is auto-detected from Lambda environment
         });
     }
+
+    if (!inlineAgentService) {
+        inlineAgentService = new InlineAgentService({});
+    }
+
+    if (!mcpToolRegistry && MCP_SERVER_CONFIG_TABLE) {
+        mcpToolRegistry = new MCPToolRegistry({
+            tableName: MCP_SERVER_CONFIG_TABLE,
+        });
+    }
 }
 
 /**
@@ -496,7 +525,61 @@ async function processChatMessage(
         // Step 3: Classify query using Query Router
         console.log('Classifying query...');
         const classification = classifyQuery(message, conversationHistory);
-        console.log(`Query classification: requiresRetrieval=${classification.requiresRetrieval}, confidence=${classification.confidence}, k=${classification.suggestedK}`);
+        console.log(`Query classification: requiresRetrieval=${classification.requiresRetrieval}, routeType=${classification.routeType}, confidence=${classification.confidence}, k=${classification.suggestedK}`);
+
+        // Step 3b: If routeType === 'agent', execute via Inline Agent path
+        if (classification.routeType === 'agent' && inlineAgentService) {
+            try {
+                const agentResult = await executeAgentPath(
+                    message,
+                    sessionId,
+                    userId,
+                    connectionId,
+                    messageSender,
+                    conversationHistory,
+                );
+
+                // Save messages to chat history
+                if (chatHistoryStore && agentResult.fullResponse) {
+                    try {
+                        await chatHistoryStore.saveMessage({
+                            userId,
+                            sessionId,
+                            messageId: `user-${Date.now()}`,
+                            timestamp: Date.now(),
+                            role: 'user',
+                            content: message,
+                            metadata: {},
+                        });
+                        await chatHistoryStore.saveMessage({
+                            userId,
+                            sessionId,
+                            messageId: agentResult.messageId,
+                            timestamp: Date.now(),
+                            role: 'assistant',
+                            content: agentResult.fullResponse,
+                            metadata: { agentRoute: true },
+                        });
+                    } catch (historyError) {
+                        console.error('Error saving agent chat history:', historyError);
+                    }
+                }
+
+                const latency = Date.now() - processingStartTime;
+                return { cached: false, latency };
+            } catch (agentError) {
+                // Fall back to standard RAG pipeline on agent failure (Requirement 14.2, 17.1)
+                console.warn('Agent execution failed, falling back to standard RAG pipeline:', agentError);
+                await messageSender.sendMessage(
+                    connectionId,
+                    MessageSender.createSystem(
+                        'Agent mode unavailable, using standard search instead.',
+                        'warning'
+                    )
+                );
+                // Continue to RAG/direct path below
+            }
+        }
 
         // Step 4: If requiresRetrieval=true, invoke RAG System to retrieve context
         let retrievedChunks: any[] = [];
@@ -815,5 +898,211 @@ async function processChatMessage(
         }
 
         throw error;
+    }
+}
+
+/**
+ * Build the built-in action group config (SearchDocuments, GetDocumentMetadata, ListUserDocuments).
+ * This is always included in every agent invocation.
+ */
+function getBuiltinActionGroupConfig(): ActionGroupConfig {
+    return {
+        actionGroupName: BUILTIN_ACTION_GROUP,
+        description: 'Built-in document tools for searching, retrieving metadata, and listing user documents.',
+        actionGroupExecutor: { customControl: 'RETURN_CONTROL' },
+        functionSchema: {
+            functions: [
+                {
+                    name: 'SearchDocuments',
+                    description: 'Search uploaded documents for information relevant to a query. Returns matching text passages with document name and page number citations.',
+                    parameters: {
+                        query: { type: 'string', description: 'The search query', required: true },
+                        maxResults: { type: 'integer', description: 'Maximum number of results (1-20, default 5)', required: false },
+                    },
+                },
+                {
+                    name: 'GetDocumentMetadata',
+                    description: 'Get metadata about a specific document including filename, upload date, page count, and processing status.',
+                    parameters: {
+                        documentId: { type: 'string', description: 'The document ID to look up', required: true },
+                    },
+                },
+                {
+                    name: 'ListUserDocuments',
+                    description: 'List all documents uploaded by the current user with their metadata.',
+                    parameters: {
+                        limit: { type: 'integer', description: 'Maximum number of documents to return (default 20)', required: false },
+                    },
+                },
+            ],
+        },
+    };
+}
+
+/**
+ * Execute the agent path for queries classified as routeType === 'agent'.
+ *
+ * 1. Load enabled MCP server configs from registry
+ * 2. Initialize MCP Client Bridge and discover tools
+ * 3. Build action groups (built-in + MCP-derived)
+ * 4. Invoke Inline Agent Service with streaming
+ * 5. Stream AgentResponseChunk text to WebSocket client
+ * 6. Optionally stream agent_trace events for debugging
+ *
+ * Wrapped in circuit breaker; falls back to standard RAG pipeline on failure.
+ *
+ * Requirements: 14.1, 14.2, 14.4, 17.1
+ */
+async function executeAgentPath(
+    message: string,
+    sessionId: string,
+    userId: string,
+    connectionId: string,
+    messageSender: MessageSender,
+    conversationHistory: Array<{ role: string; content: string; timestamp?: number }>,
+): Promise<{ fullResponse: string; messageId: string }> {
+    const messageId = `agent-${Date.now()}`;
+    let mcpBridge: MCPClientBridge | null = null;
+
+    try {
+        return await agentCircuitBreaker.execute(async () => {
+            // Step 1: Send typing indicator
+            await messageSender.sendMessage(
+                connectionId,
+                MessageSender.createTypingIndicator(true),
+            );
+
+            // Step 2: Load enabled MCP server configs from registry
+            let mcpActionGroups: ActionGroupConfig[] = [];
+            if (mcpToolRegistry) {
+                try {
+                    const enabledServers = await mcpToolRegistry.getEnabledServers();
+                    if (enabledServers.length > 0) {
+                        mcpBridge = new MCPClientBridge();
+                        await mcpBridge.initialize(enabledServers);
+                        await mcpBridge.discoverTools();
+                        mcpActionGroups = mcpBridge.toActionGroups();
+                        console.log(`Discovered ${mcpActionGroups.length} MCP action group(s) from ${enabledServers.length} server(s)`);
+                    }
+                } catch (mcpError) {
+                    console.warn('Failed to load MCP tools, continuing with built-in tools only:', mcpError);
+                }
+            }
+
+            // Step 3: Build action groups (built-in + MCP-derived)
+            const builtinActionGroup = getBuiltinActionGroupConfig();
+            const allActionGroups = [builtinActionGroup, ...mcpActionGroups];
+
+            // Step 4: Build agent instruction
+            const instruction = buildAgentInstruction({
+                actionGroups: allActionGroups,
+                userContext: { userId },
+            });
+
+            // Step 5: Create tool executor that routes to built-in or MCP tools
+            const builtinExecutor = createBuiltinToolExecutor({
+                retrieveContext: async (query: string, options?: { k?: number }) => {
+                    if (!ragSystem) throw new Error('RAG system not available');
+                    await ragSystem.initialize();
+                    return ragSystem.retrieveContext(query, options);
+                },
+                documentMetadataTable: DOCUMENT_METADATA_TABLE,
+                userId,
+            });
+
+            const toolExecutor = async (
+                actionGroup: string,
+                functionName: string,
+                parameters: Record<string, string>,
+            ): Promise<ToolExecutionResult> => {
+                // Try built-in tools first
+                const builtinResult = await builtinExecutor(actionGroup, functionName, parameters);
+                if (builtinResult !== null) {
+                    return builtinResult;
+                }
+
+                // Route to MCP bridge
+                if (mcpBridge) {
+                    const mcpResult = await mcpBridge.executeTool(actionGroup, functionName, parameters);
+                    const textParts = mcpResult.content
+                        .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
+                        .map(c => c.text);
+                    return {
+                        body: textParts.join('\n') || 'No output',
+                        isError: mcpResult.isError,
+                    };
+                }
+
+                return { body: `Unknown tool: ${actionGroup}.${functionName}`, isError: true };
+            };
+
+            // Step 6: Invoke Inline Agent Service with tool loop
+            const agentStream = inlineAgentService!.invokeAgentWithToolLoop(
+                {
+                    inputText: message,
+                    sessionId,
+                    userId,
+                    instruction,
+                    foundationModel: AGENT_FOUNDATION_MODEL,
+                    actionGroups: allActionGroups,
+                    conversationHistory: conversationHistory
+                        .filter(msg => msg.content && msg.content.trim().length > 0)
+                        .map(msg => ({
+                            role: msg.role as 'user' | 'assistant',
+                            content: msg.content,
+                        })),
+                    enableTrace: process.env.AGENT_ENABLE_TRACE === 'true',
+                },
+                toolExecutor,
+                { maxIterations: AGENT_MAX_ITERATIONS },
+            );
+
+            // Step 7: Stream response chunks to WebSocket client
+            let fullResponse = '';
+
+            for await (const chunk of agentStream) {
+                if (chunk.type === 'text' && chunk.text) {
+                    fullResponse += chunk.text;
+                    await messageSender.sendMessage(
+                        connectionId,
+                        MessageSender.createChatResponse(messageId, fullResponse, false),
+                    );
+                }
+
+                // Optionally stream trace events for debugging
+                if (chunk.type === 'trace' && chunk.trace) {
+                    console.log('[AgentTrace]', JSON.stringify(chunk.trace));
+                }
+
+                if (chunk.isComplete) {
+                    await messageSender.sendMessage(
+                        connectionId,
+                        MessageSender.createChatResponse(messageId, fullResponse, true),
+                    );
+                }
+            }
+
+            // If no complete chunk was yielded, send final message
+            if (fullResponse) {
+                await messageSender.sendMessage(
+                    connectionId,
+                    MessageSender.createChatResponse(messageId, fullResponse, true),
+                );
+            }
+
+            return { fullResponse, messageId };
+        });
+    } finally {
+        // Always clean up MCP bridge connections
+        // Type assertion needed: mcpBridge is assigned inside the circuit breaker callback,
+        // but TypeScript's control flow analysis can't track assignments through closures.
+        const bridge = mcpBridge as MCPClientBridge | null;
+        if (bridge) {
+            try {
+                await bridge.disconnect();
+            } catch (disconnectError) {
+                console.warn('Error disconnecting MCP bridge:', disconnectError);
+            }
+        }
     }
 }

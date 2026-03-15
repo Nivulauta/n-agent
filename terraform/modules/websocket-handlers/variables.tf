@@ -87,3 +87,21 @@ variable "mcp_server_config_table_arn" {
   description = "ARN of the DynamoDB MCP server config table"
   type        = string
 }
+
+variable "use_bedrock_agent" {
+  description = "Feature flag to enable Bedrock inline agent functionality"
+  type        = bool
+  default     = false
+}
+
+variable "agent_foundation_model" {
+  description = "Bedrock foundation model ID for the inline agent"
+  type        = string
+  default     = "anthropic.claude-haiku-4-5"
+}
+
+variable "agent_max_iterations" {
+  description = "Maximum number of tool calls per agent turn"
+  type        = number
+  default     = 10
+}

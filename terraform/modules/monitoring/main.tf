@@ -378,18 +378,19 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         y      = 6
       },
 
-      # Bedrock Token Usage
+      # Bedrock Token Usage (by Model)
       {
         type = "metric"
         properties = {
           metrics = [
-            ["ChatbotMetrics", "BedrockInputTokens", { stat = "Sum", label = "Input Tokens" }],
-            ["ChatbotMetrics", "BedrockOutputTokens", { stat = "Sum", label = "Output Tokens" }]
+            ["ChatbotMetrics", "BedrockInputTokens", "Model", "claude-haiku-4.5", { stat = "Sum", label = "Input Tokens (Haiku 4.5)" }],
+            ["ChatbotMetrics", "BedrockOutputTokens", "Model", "claude-haiku-4.5", { stat = "Sum", label = "Output Tokens (Haiku 4.5)" }],
+            ["ChatbotMetrics", "BedrockTotalTokens", "Model", "claude-haiku-4.5", { stat = "Sum", label = "Total Tokens (Haiku 4.5)" }]
           ]
           period = 300
           stat   = "Sum"
           region = var.aws_region
-          title  = "Bedrock Token Usage"
+          title  = "Bedrock Token Usage by Model"
           yAxis = {
             left = {
               label = "Tokens"
@@ -400,6 +401,32 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         height = 6
         x      = 12
         y      = 6
+      },
+
+      # Bedrock Token Usage (by User)
+      {
+        type = "metric"
+        properties = {
+          view    = "timeSeries"
+          stacked = false
+          metrics = [
+            ["ChatbotMetrics", "BedrockTotalTokens", { stat = "Sum", label = "Total Tokens (All Users)" }]
+          ]
+          period = 300
+          stat   = "Sum"
+          region = var.aws_region
+          title  = "Bedrock Token Usage by User"
+          yAxis = {
+            left = {
+              label = "Tokens"
+            }
+          }
+          setPeriodToTimeRange = true
+        }
+        width  = 12
+        height = 6
+        x      = 0
+        y      = 12
       },
 
       # Bedrock Cost Estimates
@@ -414,8 +441,8 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
                 id         = "e1"
               }
             ],
-            ["ChatbotMetrics", "BedrockInputTokens", { id = "m1", visible = false }],
-            ["ChatbotMetrics", "BedrockOutputTokens", { id = "m2", visible = false }]
+            ["ChatbotMetrics", "BedrockInputTokens", "Model", "claude-haiku-4.5", { id = "m1", visible = false }],
+            ["ChatbotMetrics", "BedrockOutputTokens", "Model", "claude-haiku-4.5", { id = "m2", visible = false }]
           ]
           period = 3600
           region = var.aws_region
@@ -428,7 +455,7 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 0
+        x      = 12
         y      = 12
       },
 
@@ -469,8 +496,8 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 12
-        y      = 12
+        x      = 0
+        y      = 18
       },
 
       # Concurrent User Count
@@ -501,7 +528,7 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 0
+        x      = 12
         y      = 18
       },
 
@@ -534,8 +561,8 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 12
-        y      = 18
+        x      = 0
+        y      = 24
       },
 
       # Lambda Invocations by Function
@@ -559,7 +586,7 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 0
+        x      = 12
         y      = 24
       },
 
@@ -583,8 +610,8 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 12
-        y      = 24
+        x      = 0
+        y      = 30
       },
 
       # S3 Storage Metrics
@@ -606,7 +633,7 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 0
+        x      = 12
         y      = 30
       },
 
@@ -630,8 +657,8 @@ resource "aws_cloudwatch_dashboard" "system_monitoring" {
         }
         width  = 12
         height = 6
-        x      = 12
-        y      = 30
+        x      = 0
+        y      = 36
       }
     ]
   })

@@ -245,3 +245,15 @@ output "frontend_url" {
   description = "URL to access the frontend application"
   value       = module.frontend.frontend_url
 }
+
+
+# Agent module outputs
+output "agent_execution_role_arn" {
+  description = "ARN of the agent execution IAM role (has bedrock:InvokeInlineAgent permission)"
+  value       = module.agent.agent_execution_role_arn
+}
+
+output "agent_execution_role_name" {
+  description = "Name of the agent execution IAM role"
+  value       = module.agent.agent_execution_role_name
+}

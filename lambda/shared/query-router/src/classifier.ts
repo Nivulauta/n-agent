@@ -1,4 +1,4 @@
-import { QueryClassification, Message } from './types';
+import { QueryClassification, RouteType, Message } from './types';
 import { classifyWithClaude, BedrockClassifierService } from './claude-classifier';
 
 /**
@@ -57,6 +57,37 @@ const COMPLEX_QUERY_INDICATORS = [
     /\band\b.*\band\b/i,  // Multiple "and" conjunctions
     /\bor\b.*\bor\b/i     // Multiple "or" conjunctions
 ];
+
+/**
+ * Agent routing patterns — queries that benefit from multi-step reasoning with tools
+ */
+const AGENT_PATTERNS = [
+    // Multi-step queries: compare document A with document B
+    /\b(compare|contrast|diff)\b.*\b(document|file|pdf|report)\b.*\b(with|to|and|against|versus|vs)\b.*\b(document|file|pdf|report)\b/i,
+    /\b(document|file|pdf|report)\b.*\b(and|vs|versus)\b.*\b(document|file|pdf|report)\b/i,
+
+    // Explicit agent/tool requests
+    /\b(use tools?|using tools?)\b/i,
+    /\b(search\s+and\s+then|find\s+and\s+then|look up\s+and\s+then)\b/i,
+    /\b(step[- ]by[- ]step|multi[- ]step)\b/i,
+
+    // Queries requiring multiple document lookups
+    /\b(across|between|among)\b.*\b(documents?|files?|pdfs?|reports?)\b/i,
+    /\b(each|every)\b.*\b(document|file|pdf|report)\b/i,
+    /\b(all\s+(?:the\s+)?documents?|all\s+(?:the\s+)?files?)\b.*\b(and|then)\b/i,
+
+    // Document metadata queries
+    /\b(when\s+was|who\s+uploaded|upload\s+date|upload\s+time|file\s+size|page\s+count|how\s+many\s+pages)\b/i,
+    /\b(metadata|properties|details|info)\b.*\b(of|about|for)\b.*\b(document|file|pdf)\b/i,
+    /\b(list|show)\b.*\b(my|all|uploaded)\b.*\b(documents?|files?|pdfs?)\b/i,
+];
+
+/**
+ * Check if the Bedrock Agent feature flag is enabled
+ */
+function isAgentEnabled(): boolean {
+    return process.env.USE_BEDROCK_AGENT === 'true';
+}
 
 /**
  * Determine optimal number of document chunks (k) to retrieve based on query complexity
@@ -158,6 +189,7 @@ export function classifyQuery(
     if (!normalizedQuery) {
         return {
             requiresRetrieval: false,
+            routeType: 'direct',
             confidence: 1.0,
             reasoning: 'Empty query',
             suggestedK: 0
@@ -167,6 +199,18 @@ export function classifyQuery(
     let retrievalScore = 0;
     let maxScore = 0;
     const reasons: string[] = [];
+
+    // Check for agent routing patterns
+    let hasAgentPattern = false;
+    if (isAgentEnabled()) {
+        for (const pattern of AGENT_PATTERNS) {
+            if (pattern.test(normalizedQuery)) {
+                hasAgentPattern = true;
+                reasons.push('agent pattern detected');
+                break;
+            }
+        }
+    }
 
     // Check for conversational patterns (strong indicator for NO retrieval)
     maxScore += 3;
@@ -281,8 +325,19 @@ export function classifyQuery(
         ? reasons.join(', ')
         : 'no strong indicators detected';
 
+    // Determine route type
+    let routeType: RouteType;
+    if (hasAgentPattern) {
+        routeType = 'agent';
+    } else if (requiresRetrieval) {
+        routeType = 'rag';
+    } else {
+        routeType = 'direct';
+    }
+
     return {
         requiresRetrieval,
+        routeType,
         confidence,
         reasoning,
         suggestedK

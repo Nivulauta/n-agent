@@ -14,4 +14,4 @@
 
 export { classifyQuery, classifyQueryWithFallback } from './classifier';
 export { classifyWithClaude, BedrockClassifierService } from './claude-classifier';
-export { QueryClassification, Message } from './types';
+export { QueryClassification, RouteType, Message } from './types';

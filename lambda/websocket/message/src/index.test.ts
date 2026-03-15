@@ -42,9 +42,11 @@ const mockBedrockServiceInstance = {
 
 // Mock dependencies using vi.hoisted to ensure they're set up before module imports
 vi.mock('../../../shared/rate-limiter/src/rate-limiter', () => ({
-    RateLimiter: vi.fn(() => ({
-        checkRateLimit: mockRateLimiterCheckRateLimit,
-    })),
+    RateLimiter: vi.fn(function () {
+        return {
+            checkRateLimit: mockRateLimiterCheckRateLimit,
+        };
+    }),
 }));
 
 vi.mock('../../../shared/audit-logger/src/audit-logger', () => ({
@@ -53,11 +55,11 @@ vi.mock('../../../shared/audit-logger/src/audit-logger', () => ({
 }));
 
 vi.mock('../../../shared/bedrock/src/bedrock', () => ({
-    BedrockService: vi.fn().mockImplementation(() => mockBedrockServiceInstance),
+    BedrockService: vi.fn(function () { return mockBedrockServiceInstance; }),
 }));
 
 vi.mock('../../../shared/chat-history/src/chat-history', () => ({
-    ChatHistoryStore: vi.fn().mockImplementation(() => mockChatHistoryStoreInstance),
+    ChatHistoryStore: vi.fn(function () { return mockChatHistoryStoreInstance; }),
 }));
 
 vi.mock('../../../shared/query-router/src/classifier', () => ({
@@ -65,11 +67,11 @@ vi.mock('../../../shared/query-router/src/classifier', () => ({
 }));
 
 vi.mock('../../../shared/rag/src/rag', () => ({
-    RAGSystem: vi.fn().mockImplementation(() => mockRAGSystemInstance),
+    RAGSystem: vi.fn(function () { return mockRAGSystemInstance; }),
 }));
 
 vi.mock('../../../shared/cache/src/cache', () => ({
-    CacheLayer: vi.fn().mockImplementation(() => mockCacheLayerInstance),
+    CacheLayer: vi.fn(function () { return mockCacheLayerInstance; }),
 }));
 
 vi.mock('crypto', () => ({
@@ -80,9 +82,11 @@ vi.mock('crypto', () => ({
 }));
 
 vi.mock('../../shared/src/message-sender', () => ({
-    MessageSender: vi.fn(() => ({
-        sendMessage: mockMessageSenderSendMessage,
-    })),
+    MessageSender: vi.fn(function () {
+        return {
+            sendMessage: mockMessageSenderSendMessage,
+        };
+    }),
 }));
 
 // Add static methods to MessageSender mock
@@ -115,12 +119,12 @@ vi.mock('@aws-sdk/lib-dynamodb', () => {
                 send: (...args: any[]) => mockDocClientSend(...args),
             })),
         },
-        GetCommand: vi.fn((params) => params),
+        GetCommand: vi.fn(function (params: any) { Object.assign(this, params); }),
     };
 });
 
 vi.mock('@aws-sdk/client-dynamodb', () => ({
-    DynamoDBClient: vi.fn(() => ({})),
+    DynamoDBClient: vi.fn(function () { return {}; }),
 }));
 
 // Set environment variables BEFORE importing the handler

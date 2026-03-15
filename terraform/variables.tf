@@ -100,3 +100,21 @@ variable "cors_origin" {
   type        = string
   default     = "http://localhost:5173"
 }
+
+variable "use_bedrock_agent" {
+  description = "Feature flag to enable Bedrock inline agent functionality (default: false)"
+  type        = bool
+  default     = false
+}
+
+variable "agent_foundation_model" {
+  description = "Bedrock foundation model ID for the inline agent (default: same as existing Claude Haiku 4.5)"
+  type        = string
+  default     = "anthropic.claude-haiku-4-5"
+}
+
+variable "agent_max_iterations" {
+  description = "Maximum number of tool calls per agent turn (default: 10)"
+  type        = number
+  default     = 10
+}

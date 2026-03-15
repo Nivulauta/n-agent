@@ -360,8 +360,8 @@ resource "aws_lambda_function" "message" {
   role             = aws_iam_role.message_role.arn
   handler          = "index.handler"
   runtime          = local.lambda_runtime
-  timeout          = 30
-  memory_size      = 1024
+  timeout          = 120
+  memory_size      = 1536
 
   # Reserved concurrency to support 100 concurrent message handlers
   reserved_concurrent_executions = 100
@@ -382,6 +382,9 @@ resource "aws_lambda_function" "message" {
       CACHE_HOST              = var.cache_endpoint
       CACHE_PORT              = tostring(var.cache_port)
       MCP_SERVER_CONFIG_TABLE = var.mcp_server_config_table_name
+      USE_BEDROCK_AGENT       = tostring(var.use_bedrock_agent)
+      AGENT_FOUNDATION_MODEL  = var.agent_foundation_model
+      AGENT_MAX_ITERATIONS    = tostring(var.agent_max_iterations)
     }
   }
 

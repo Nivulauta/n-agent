@@ -61,6 +61,7 @@ export class ChatHistoryStore {
                     retrievedChunks: message.metadata?.retrievedChunks,
                     tokenCount: message.metadata?.tokenCount,
                     latency: message.metadata?.latency,
+                    agentRoute: message.metadata?.agentRoute,
                 },
                 ttl,
             };
