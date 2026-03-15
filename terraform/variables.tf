@@ -118,3 +118,9 @@ variable "agent_max_iterations" {
   type        = number
   default     = 10
 }
+
+variable "serpapi_mcp_url" {
+  description = "SerpAPI MCP server URL (streamable-http transport)"
+  type        = string
+  default     = ""
+}

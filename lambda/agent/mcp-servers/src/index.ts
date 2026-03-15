@@ -81,6 +81,7 @@ async function handleUpsert(name: string, body: string | null): Promise<APIGatew
         ...(parsed.env !== undefined && { env: parsed.env as Record<string, string> }),
         ...(parsed.toolFilter !== undefined && { toolFilter: parsed.toolFilter as string[] }),
         ...(parsed.description !== undefined && { description: parsed.description as string }),
+        ...(parsed.toolArgHints !== undefined && { toolArgHints: parsed.toolArgHints as MCPServerConfig['toolArgHints'] }),
     };
 
     await registry.upsertServer(config);

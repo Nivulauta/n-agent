@@ -1,4 +1,15 @@
 /**
+ * Default argument hints for an MCP server's tools.
+ * Stored alongside the server config to guide the agent on how to invoke tools.
+ */
+export interface MCPToolArgHints {
+    /** Default key-value parameters to include in tool calls (e.g., engine, mode) */
+    defaults?: Record<string, string>;
+    /** Descriptions of common parameters for agent instruction building */
+    paramDescriptions?: Record<string, string>;
+}
+
+/**
  * MCP Server configuration stored in DynamoDB
  */
 export interface MCPServerConfig {
@@ -12,6 +23,8 @@ export interface MCPServerConfig {
     toolFilter?: string[];
     description?: string;
     builtin?: boolean;
+    /** Default argument hints for this server's tools */
+    toolArgHints?: MCPToolArgHints;
 }
 
 /**
@@ -31,6 +44,7 @@ export interface MCPServerConfigRecord {
     toolFilter?: string[];
     description?: string;
     builtin?: boolean;
+    toolArgHints?: MCPToolArgHints;
 }
 
 /**

@@ -3,6 +3,14 @@
  * Re-exports MCPServerConfig from mcp-registry for convenience.
  */
 
+/** Default argument hints for an MCP server's tools */
+export interface MCPToolArgHints {
+    /** Default key-value parameters to include in tool calls */
+    defaults?: Record<string, string>;
+    /** Descriptions of common parameters for agent instruction building */
+    paramDescriptions?: Record<string, string>;
+}
+
 /** Re-export the server config type from the registry module */
 export interface MCPServerConfig {
     name: string;
@@ -15,6 +23,7 @@ export interface MCPServerConfig {
     toolFilter?: string[];
     description?: string;
     builtin?: boolean;
+    toolArgHints?: MCPToolArgHints;
 }
 
 /** A tool definition discovered from an MCP server */

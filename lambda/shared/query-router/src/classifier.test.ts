@@ -384,9 +384,9 @@ describe('Query Classification', () => {
                 }
             });
 
-            it('should still route simple document queries to rag', () => {
+            it('should route simple document queries to agent when agent is enabled', () => {
                 const result = classifyQuery('What is in the document?');
-                expect(result.routeType).toBe('rag');
+                expect(result.routeType).toBe('agent');
             });
 
             it('should still route conversational queries to direct', () => {

@@ -326,8 +326,13 @@ export function classifyQuery(
         : 'no strong indicators detected';
 
     // Determine route type
+    // When the agent feature flag is enabled, route all non-direct queries
+    // through the agent path — the agent has built-in RAG tools and can
+    // also leverage MCP server tools for richer responses.
     let routeType: RouteType;
-    if (hasAgentPattern) {
+    if (isAgentEnabled() && (hasAgentPattern || requiresRetrieval)) {
+        routeType = 'agent';
+    } else if (hasAgentPattern) {
         routeType = 'agent';
     } else if (requiresRetrieval) {
         routeType = 'rag';

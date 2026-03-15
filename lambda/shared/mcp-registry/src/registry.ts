@@ -149,6 +149,7 @@ export class MCPToolRegistry {
             ...(record.toolFilter !== undefined && { toolFilter: record.toolFilter }),
             ...(record.description !== undefined && { description: record.description }),
             ...(record.builtin !== undefined && { builtin: record.builtin }),
+            ...(record.toolArgHints !== undefined && { toolArgHints: record.toolArgHints }),
         };
     }
 }

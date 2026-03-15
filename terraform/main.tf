@@ -72,8 +72,9 @@ module "storage" {
 module "database" {
   source = "./modules/database"
 
-  environment = var.environment
-  kms_key_arn = module.security.kms_key_arn
+  environment     = var.environment
+  kms_key_arn     = module.security.kms_key_arn
+  serpapi_mcp_url = var.serpapi_mcp_url
 }
 
 module "opensearch" {

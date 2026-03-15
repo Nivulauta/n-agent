@@ -159,11 +159,30 @@ export class MCPClientBridge {
                 this.mcpToolToFunctionDef(tool),
             );
 
+            // Build description including toolArgHints if available
+            let description =
+                server.config.description ??
+                `Tools from MCP server: ${server.name}`;
+
+            const hints = server.config.toolArgHints;
+            if (hints) {
+                if (hints.defaults && Object.keys(hints.defaults).length > 0) {
+                    const defaultsStr = Object.entries(hints.defaults)
+                        .map(([k, v]) => `${k}=${v}`)
+                        .join(', ');
+                    description += ` | Defaults: ${defaultsStr}`;
+                }
+                if (hints.paramDescriptions && Object.keys(hints.paramDescriptions).length > 0) {
+                    const descsStr = Object.entries(hints.paramDescriptions)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join('; ');
+                    description += ` | Params: ${descsStr}`;
+                }
+            }
+
             actionGroups.push({
                 actionGroupName: server.name,
-                description:
-                    server.config.description ??
-                    `Tools from MCP server: ${server.name}`,
+                description,
                 actionGroupExecutor: { customControl: 'RETURN_CONTROL' },
                 functionSchema: { functions },
             });

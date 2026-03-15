@@ -289,46 +289,35 @@ resource "aws_dynamodb_table" "mcp_server_config" {
   }
 }
 
-# Seed built-in MCP server configs on deployment
+# Seed MCP server configs on deployment
 
-resource "aws_dynamodb_table_item" "mcp_seed_document_tools" {
+resource "aws_dynamodb_table_item" "mcp_seed_serpapi" {
   table_name = aws_dynamodb_table.mcp_server_config.name
   hash_key   = aws_dynamodb_table.mcp_server_config.hash_key
   range_key  = aws_dynamodb_table.mcp_server_config.range_key
 
   item = jsonencode({
-    PK          = { S = "MCP#DocumentTools" }
+    PK          = { S = "MCP#serpapi" }
     SK          = { S = "CONFIG" }
-    name        = { S = "DocumentTools" }
-    transport   = { S = "stdio" }
+    name        = { S = "serpapi" }
+    transport   = { S = "streamable-http" }
+    url         = { S = var.serpapi_mcp_url }
     enabled     = { BOOL = true }
-    builtin     = { BOOL = true }
-    description = { S = "Built-in document search, metadata, and listing tools" }
-  })
-
-  lifecycle {
-    ignore_changes = [item]
-  }
-}
-
-resource "aws_dynamodb_table_item" "mcp_seed_aws_api" {
-  table_name = aws_dynamodb_table.mcp_server_config.name
-  hash_key   = aws_dynamodb_table.mcp_server_config.hash_key
-  range_key  = aws_dynamodb_table.mcp_server_config.range_key
-
-  item = jsonencode({
-    PK        = { S = "MCP#aws-api-mcp-server" }
-    SK        = { S = "CONFIG" }
-    name      = { S = "aws-api-mcp-server" }
-    transport = { S = "stdio" }
-    command   = { S = "uvx" }
-    args      = { L = [{ S = "awslabs.aws-api-mcp-server@latest" }] }
-    env = { M = {
-      AWS_REGION = { S = "us-east-1" }
+    builtin     = { BOOL = false }
+    description = { S = "SerpAPI web search tools via MCP" }
+    toolArgHints = { M = {
+      defaults = { M = {
+        engine = { S = "google_light" }
+        mode   = { S = "complete" }
+      } }
+      paramDescriptions = { M = {
+        q        = { S = "Search query (required for most engines)" }
+        engine   = { S = "Search engine to use (default: google_light)" }
+        location = { S = "Geographic location filter" }
+        num      = { S = "Number of results to return" }
+        mode     = { S = "Response mode: complete (full JSON) or compact (metadata removed)" }
+      } }
     } }
-    enabled     = { BOOL = true }
-    builtin     = { BOOL = true }
-    description = { S = "AWS API MCP Server — interact with AWS services through CLI commands" }
   })
 
   lifecycle {

@@ -284,8 +284,8 @@ describe('Agent Classification', () => {
             vi.unstubAllEnvs();
         });
 
-        describe('simple document questions still route to rag', () => {
-            it('should route basic document questions to rag', () => {
+        describe('document questions route to agent when agent is enabled', () => {
+            it('should route basic document questions to agent', () => {
                 const queries = [
                     'What is in the document?',
                     'What does the file say about revenue?',
@@ -294,12 +294,12 @@ describe('Agent Classification', () => {
                 ];
                 for (const q of queries) {
                     const r = classifyQuery(q);
-                    expect(r.routeType, `"${q}" should route to rag`).toBe('rag');
+                    expect(r.routeType, `"${q}" should route to agent`).toBe('agent');
                     expect(r.requiresRetrieval).toBe(true);
                 }
             });
 
-            it('should route simple "what/who/where" questions to rag', () => {
+            it('should route simple "what/who/where" questions to agent', () => {
                 const queries = [
                     'What is the policy?',
                     'Who is the author?',
@@ -307,7 +307,7 @@ describe('Agent Classification', () => {
                 ];
                 for (const q of queries) {
                     const r = classifyQuery(q);
-                    expect(r.routeType, `"${q}" should route to rag`).toBe('rag');
+                    expect(r.routeType, `"${q}" should route to agent`).toBe('agent');
                 }
             });
         });

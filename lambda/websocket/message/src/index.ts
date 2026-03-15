@@ -977,12 +977,17 @@ async function executeAgentPath(
             if (mcpToolRegistry) {
                 try {
                     const enabledServers = await mcpToolRegistry.getEnabledServers();
-                    if (enabledServers.length > 0) {
+                    // Filter out stdio transport servers — Lambda cannot spawn child processes
+                    const connectableServers = enabledServers.filter(s => s.transport !== 'stdio');
+                    if (connectableServers.length > 0) {
                         mcpBridge = new MCPClientBridge();
-                        await mcpBridge.initialize(enabledServers);
+                        await mcpBridge.initialize(connectableServers);
                         await mcpBridge.discoverTools();
                         mcpActionGroups = mcpBridge.toActionGroups();
-                        console.log(`Discovered ${mcpActionGroups.length} MCP action group(s) from ${enabledServers.length} server(s)`);
+                        console.log(`Discovered ${mcpActionGroups.length} MCP action group(s) from ${connectableServers.length} server(s)`);
+                    }
+                    if (enabledServers.length !== connectableServers.length) {
+                        console.log(`Skipped ${enabledServers.length - connectableServers.length} stdio-transport server(s) (not supported in Lambda)`);
                     }
                 } catch (mcpError) {
                     console.warn('Failed to load MCP tools, continuing with built-in tools only:', mcpError);
