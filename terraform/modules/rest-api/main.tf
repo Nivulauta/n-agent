@@ -409,6 +409,8 @@ resource "aws_api_gateway_deployment" "chatbot" {
       aws_api_gateway_integration_response.documents_upload_options.id,
       aws_api_gateway_integration_response.documents_id_options.id,
       aws_api_gateway_integration_response.chat_history_options.id,
+      aws_api_gateway_integration_response.mcp_servers_options.id,
+      aws_api_gateway_integration_response.mcp_servers_name_options.id,
       var.cors_origin, # Force redeployment when CORS origin changes
     ]))
   }
@@ -425,7 +427,12 @@ resource "aws_api_gateway_deployment" "chatbot" {
     aws_api_gateway_integration.documents_upload_options,
     aws_api_gateway_integration.documents_id_options,
     aws_api_gateway_integration.chat_history,
-    aws_api_gateway_integration.chat_history_options
+    aws_api_gateway_integration.chat_history_options,
+    aws_api_gateway_integration.mcp_servers_list,
+    aws_api_gateway_integration.mcp_servers_upsert,
+    aws_api_gateway_integration.mcp_servers_delete,
+    aws_api_gateway_integration.mcp_servers_options,
+    aws_api_gateway_integration.mcp_servers_name_options
   ]
 
   lifecycle {
@@ -1090,6 +1097,196 @@ resource "aws_api_gateway_integration_response" "chat_history_options" {
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods"     = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
+  }
+}
+
+# ── /agent Resource ──────────────────────────────────────────────────────────
+
+resource "aws_api_gateway_resource" "agent" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  parent_id   = aws_api_gateway_rest_api.chatbot.root_resource_id
+  path_part   = "agent"
+}
+
+# /agent/mcp-servers Resource
+resource "aws_api_gateway_resource" "mcp_servers" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  parent_id   = aws_api_gateway_resource.agent.id
+  path_part   = "mcp-servers"
+}
+
+# GET /agent/mcp-servers Method
+resource "aws_api_gateway_method" "mcp_servers_list" {
+  rest_api_id   = aws_api_gateway_rest_api.chatbot.id
+  resource_id   = aws_api_gateway_resource.mcp_servers.id
+  http_method   = "GET"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda.id
+}
+
+# GET /agent/mcp-servers Integration
+resource "aws_api_gateway_integration" "mcp_servers_list" {
+  rest_api_id             = aws_api_gateway_rest_api.chatbot.id
+  resource_id             = aws_api_gateway_resource.mcp_servers.id
+  http_method             = aws_api_gateway_method.mcp_servers_list.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.mcp_servers_invoke_arn
+}
+
+# Lambda Permission for MCP Servers
+resource "aws_lambda_permission" "mcp_servers" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = var.mcp_servers_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.chatbot.execution_arn}/*/*"
+}
+
+# CORS Configuration for /agent/mcp-servers
+resource "aws_api_gateway_method" "mcp_servers_options" {
+  rest_api_id   = aws_api_gateway_rest_api.chatbot.id
+  resource_id   = aws_api_gateway_resource.mcp_servers.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "mcp_servers_options" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  resource_id = aws_api_gateway_resource.mcp_servers.id
+  http_method = aws_api_gateway_method.mcp_servers_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "mcp_servers_options" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  resource_id = aws_api_gateway_resource.mcp_servers.id
+  http_method = aws_api_gateway_method.mcp_servers_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "mcp_servers_options" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  resource_id = aws_api_gateway_resource.mcp_servers.id
+  http_method = aws_api_gateway_method.mcp_servers_options.http_method
+  status_code = aws_api_gateway_method_response.mcp_servers_options.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'GET,PUT,DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
+  }
+}
+
+# /agent/mcp-servers/{name} Resource
+resource "aws_api_gateway_resource" "mcp_servers_name" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  parent_id   = aws_api_gateway_resource.mcp_servers.id
+  path_part   = "{name}"
+}
+
+# PUT /agent/mcp-servers/{name} Method
+resource "aws_api_gateway_method" "mcp_servers_upsert" {
+  rest_api_id   = aws_api_gateway_rest_api.chatbot.id
+  resource_id   = aws_api_gateway_resource.mcp_servers_name.id
+  http_method   = "PUT"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda.id
+
+  request_parameters = {
+    "method.request.path.name" = true
+  }
+}
+
+# PUT /agent/mcp-servers/{name} Integration
+resource "aws_api_gateway_integration" "mcp_servers_upsert" {
+  rest_api_id             = aws_api_gateway_rest_api.chatbot.id
+  resource_id             = aws_api_gateway_resource.mcp_servers_name.id
+  http_method             = aws_api_gateway_method.mcp_servers_upsert.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.mcp_servers_invoke_arn
+}
+
+# DELETE /agent/mcp-servers/{name} Method
+resource "aws_api_gateway_method" "mcp_servers_delete" {
+  rest_api_id   = aws_api_gateway_rest_api.chatbot.id
+  resource_id   = aws_api_gateway_resource.mcp_servers_name.id
+  http_method   = "DELETE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.lambda.id
+
+  request_parameters = {
+    "method.request.path.name" = true
+  }
+}
+
+# DELETE /agent/mcp-servers/{name} Integration
+resource "aws_api_gateway_integration" "mcp_servers_delete" {
+  rest_api_id             = aws_api_gateway_rest_api.chatbot.id
+  resource_id             = aws_api_gateway_resource.mcp_servers_name.id
+  http_method             = aws_api_gateway_method.mcp_servers_delete.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.mcp_servers_invoke_arn
+}
+
+# CORS Configuration for /agent/mcp-servers/{name}
+resource "aws_api_gateway_method" "mcp_servers_name_options" {
+  rest_api_id   = aws_api_gateway_rest_api.chatbot.id
+  resource_id   = aws_api_gateway_resource.mcp_servers_name.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "mcp_servers_name_options" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  resource_id = aws_api_gateway_resource.mcp_servers_name.id
+  http_method = aws_api_gateway_method.mcp_servers_name_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "mcp_servers_name_options" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  resource_id = aws_api_gateway_resource.mcp_servers_name.id
+  http_method = aws_api_gateway_method.mcp_servers_name_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "mcp_servers_name_options" {
+  rest_api_id = aws_api_gateway_rest_api.chatbot.id
+  resource_id = aws_api_gateway_resource.mcp_servers_name.id
+  http_method = aws_api_gateway_method.mcp_servers_name_options.http_method
+  status_code = aws_api_gateway_method_response.mcp_servers_name_options.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'PUT,DELETE,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"      = "'${var.cors_origin}'"
     "method.response.header.Access-Control-Allow-Credentials" = "'true'"
   }

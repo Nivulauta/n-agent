@@ -170,3 +170,8 @@ output "vector_store_init_invoked" {
   description = "Whether the vector store init function was invoked"
   value       = var.auto_invoke_vector_store_init
 }
+
+variable "aws_region" {
+  description = "AWS region for Lambda invocation"
+  type        = string
+}

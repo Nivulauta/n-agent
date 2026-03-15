@@ -15,12 +15,13 @@ Key architectural principles:
 
 The system processes user queries through a multi-stage pipeline:
 1. Authentication and rate limiting via API Gateway
-2. Query classification to determine if RAG retrieval is needed
-3. Vector search in OpenSearch to find relevant document chunks (if needed)
-4. Context assembly with conversation history and retrieved documents
-5. Claude Haiku 4.5 invocation via Bedrock with streaming response
-6. Real-time response delivery via WebSocket
-7. Persistence of conversation history and audit logs
+2. Query classification to determine if RAG retrieval, direct LLM, or agent execution is needed
+3. For standard queries: Vector search in OpenSearch → context assembly → Claude invocation
+4. For agent queries: InvokeInlineAgent with dynamically-configured MCP tools and action groups
+5. Real-time response delivery via WebSocket (streaming)
+6. Persistence of conversation history and audit logs
+
+The system supports an inline Bedrock Agent mode that enables multi-step reasoning with a pluggable tool architecture. MCP (Model Context Protocol) servers can be added or removed via configuration (DynamoDB + environment variables) without code changes. The agent discovers MCP tools at runtime, translates them into Bedrock action group schemas, and passes them to the `InvokeInlineAgent` API.
 
 ## Architecture
 
@@ -58,10 +59,26 @@ Lambda Authorizer → DynamoDB (Sessions)
     ↓ (Invoke)
 Lambda Handler
     ├→ ElastiCache (Check Cache)
-    ├→ Query Router (Classify Query)
-    ├→ OpenSearch (Vector Search) ← Bedrock Titan (Query Embedding)
-    ├→ DynamoDB (Chat History)
-    └→ Bedrock Claude 3 Sonnet (Generate Response)
+    ├→ Query Router (Classify Query → "rag" | "direct" | "agent")
+    │
+    ├─[rag/direct path]──────────────────────────────────────────┐
+    │   ├→ OpenSearch (Vector Search) ← Bedrock Titan (Query Embedding)
+    │   ├→ DynamoDB (Chat History)
+    │   └→ Bedrock Claude Haiku 4.5 (Generate Response)
+    │
+    ├─[agent path]───────────────────────────────────────────────┐
+    │   ├→ MCP Tool Registry (DynamoDB) → Load tool configs
+    │   ├→ MCP Client Bridge → Connect to MCP servers
+    │   │   ├→ tools/list → Discover available tools
+    │   │   └→ Convert MCP tools → Bedrock action group schemas
+    │   ├→ InvokeInlineAgent (Bedrock Agent Runtime)
+    │   │   ├→ Foundation Model: Claude Haiku 4.5
+    │   │   ├→ Action Groups: MCP-derived + built-in (RAG, metadata)
+    │   │   ├→ Agent loop: reason → call tool → observe → repeat
+    │   │   └→ Return Control → Lambda executes tool → returns result
+    │   └→ Stream agent response chunks
+    │
+    └→ DynamoDB (Chat History)
     ↓ (Stream)
 WebSocket Connection → User Browser
 
@@ -80,8 +97,8 @@ Lambda Document Processor
 
 **Networking**
 - VPC with private subnets for OpenSearch and Lambda functions
-- NAT Gateway for outbound internet access from private subnets
-- VPC Endpoints for S3, DynamoDB, and Bedrock to avoid internet routing
+- NAT Gateway (or NAT instance for dev) for outbound internet access from private subnets
+- VPC Endpoints for S3, DynamoDB, Bedrock Runtime, and Bedrock Agent Runtime to avoid internet routing
 - Security groups restricting traffic to necessary ports and sources
 
 **Compute**
@@ -186,7 +203,7 @@ interface Message {
 
 ### 3. Query Router
 
-**Responsibility**: Classify queries to determine if RAG retrieval is needed
+**Responsibility**: Classify queries to determine execution path: RAG retrieval, direct LLM, or agent execution
 
 **Implementation**: Lambda function with rule-based + ML classification
 
@@ -199,6 +216,7 @@ interface QueryRouter {
 
 interface QueryClassification {
   requiresRetrieval: boolean
+  routeType: 'rag' | 'direct' | 'agent'
   confidence: number
   reasoning: string
   suggestedK: number // Number of documents to retrieve
@@ -207,9 +225,11 @@ interface QueryClassification {
 
 **Key Design Decisions**:
 - Use heuristic rules for initial classification (keywords, question patterns)
+- Route to `agent` for multi-step queries, comparison requests, queries requiring tool use, or when the user explicitly requests agent mode
 - Fall back to Claude for ambiguous cases with classification prompt
 - Cache classification results for similar queries
 - Default to RAG retrieval when confidence < 0.7
+- Agent route is gated by `USE_BEDROCK_AGENT` environment variable (feature flag)
 
 ### 4. RAG System
 
@@ -645,6 +665,244 @@ interface ValidationResult {
 - Trigger document processing via S3 event notification
 - Store upload metadata in DynamoDB for tracking
 
+### 14. Inline Agent Service
+
+**Responsibility**: Invoke Bedrock InlineAgent with dynamically-configured action groups derived from MCP servers and built-in tools
+
+**Implementation**: Lambda function using `@aws-sdk/client-bedrock-agent-runtime` InvokeInlineAgentCommand
+
+**Interfaces**:
+```typescript
+interface InlineAgentService {
+  // Invoke the inline agent with streaming response
+  invokeAgent(request: InlineAgentRequest): AsyncGenerator<AgentResponseChunk>
+}
+
+interface InlineAgentRequest {
+  inputText: string
+  sessionId: string
+  userId: string
+  instruction: string
+  foundationModel: string
+  actionGroups: ActionGroupConfig[]
+  conversationHistory?: ConversationMessage[]
+  enableTrace?: boolean
+  sessionAttributes?: Record<string, string>
+}
+
+interface ActionGroupConfig {
+  actionGroupName: string
+  description: string
+  actionGroupExecutor?: {
+    customControl: 'RETURN_CONTROL'  // Agent returns control to Lambda for tool execution
+  }
+  functionSchema: {
+    functions: FunctionDefinition[]
+  }
+}
+
+interface FunctionDefinition {
+  name: string
+  description: string
+  parameters: Record<string, {
+    type: string
+    description: string
+    required: boolean
+  }>
+}
+
+interface AgentResponseChunk {
+  type: 'text' | 'trace' | 'return_control' | 'complete'
+  text?: string
+  trace?: AgentTrace
+  returnControl?: ReturnControlPayload
+  isComplete: boolean
+}
+
+interface ReturnControlPayload {
+  invocationId: string
+  actionGroup: string
+  function: string
+  parameters: Record<string, string>
+}
+
+interface AgentTrace {
+  step: string
+  reasoning?: string
+  toolUse?: { name: string; input: Record<string, any> }
+  observation?: string
+}
+```
+
+**Key Design Decisions**:
+- Use `InvokeInlineAgent` API (not persistent agent resources) — no agent to deploy or version
+- Use `RETURN_CONTROL` for action group execution — the Lambda handler executes tools locally and returns results to the agent loop via `returnControlInvocationResults`
+- Stream agent response chunks back to the WebSocket client as they arrive
+- Support `enableTrace` for debugging agent reasoning steps
+- Session state persists across turns within the same `sessionId` (managed by Bedrock)
+- Foundation model configurable per-request but defaults to Claude Haiku 4.5
+
+### 15. MCP Client Bridge
+
+**Responsibility**: Connect to configured MCP servers, discover their tools, and translate MCP tool schemas into Bedrock action group function definitions
+
+**Implementation**: Shared Lambda module using `@modelcontextprotocol/sdk` (MCP TypeScript SDK)
+
+**Interfaces**:
+```typescript
+interface MCPClientBridge {
+  // Initialize connections to all configured MCP servers
+  initialize(configs: MCPServerConfig[]): Promise<void>
+
+  // Discover tools from all connected MCP servers
+  discoverTools(): Promise<MCPToolDefinition[]>
+
+  // Execute a tool on the appropriate MCP server
+  executeTool(serverName: string, toolName: string, args: Record<string, any>): Promise<MCPToolResult>
+
+  // Convert discovered MCP tools into Bedrock action group schemas
+  toActionGroups(): ActionGroupConfig[]
+
+  // Disconnect all MCP server connections
+  disconnect(): Promise<void>
+}
+
+interface MCPServerConfig {
+  name: string                          // Unique server identifier
+  transport: 'stdio' | 'sse' | 'streamable-http'
+  command?: string                      // For stdio transport: command to run
+  args?: string[]                       // For stdio transport: command arguments
+  url?: string                          // For SSE/HTTP transport: server URL
+  env?: Record<string, string>          // Environment variables for the server process
+  enabled: boolean                      // Feature flag per server
+  toolFilter?: string[]                 // Optional: only expose these tool names
+  description?: string                  // Human-readable description for the action group
+}
+
+interface MCPToolDefinition {
+  serverName: string
+  name: string
+  description: string
+  inputSchema: {
+    type: 'object'
+    properties: Record<string, { type: string; description: string }>
+    required?: string[]
+  }
+}
+
+interface MCPToolResult {
+  content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }>
+  isError?: boolean
+}
+```
+
+**Key Design Decisions**:
+- MCP servers are configured via a DynamoDB table (`MCPServerConfig`) and/or environment variables — no code changes needed to add/remove tools
+- Each MCP server becomes one Bedrock action group (1:1 mapping)
+- MCP tool `inputSchema` properties map directly to Bedrock `FunctionDefinition.parameters`
+- Tool execution uses `RETURN_CONTROL` flow: agent decides to call a tool → Lambda receives the invocation → MCP Client Bridge calls the MCP server → result returned to agent
+- For `stdio` transport, the MCP server process is spawned as a child process within the Lambda execution environment (works for lightweight servers; for heavy servers, use SSE/HTTP transport pointing to a hosted endpoint)
+- For `sse`/`streamable-http` transport, the MCP server runs externally (e.g., on ECS, EC2, or AgentCore Runtime) and the bridge connects over HTTPS
+- Tool discovery happens once per Lambda cold start and is cached in memory
+- `toolFilter` allows exposing only a subset of an MCP server's tools to the agent
+
+### 16. MCP Tool Registry
+
+**Responsibility**: Store and manage MCP server configurations, enabling runtime addition/removal of tool providers without code deployment
+
+**Implementation**: DynamoDB table + REST API endpoints
+
+**Interfaces**:
+```typescript
+interface MCPToolRegistry {
+  // List all registered MCP server configurations
+  listServers(): Promise<MCPServerConfig[]>
+
+  // Get a specific server configuration
+  getServer(name: string): Promise<MCPServerConfig | null>
+
+  // Register or update an MCP server configuration
+  upsertServer(config: MCPServerConfig): Promise<void>
+
+  // Remove an MCP server configuration
+  deleteServer(name: string): Promise<void>
+
+  // Get all enabled server configurations (for agent invocation)
+  getEnabledServers(): Promise<MCPServerConfig[]>
+}
+```
+
+**REST API Endpoints**:
+
+**GET /agent/mcp-servers**
+```typescript
+Response: {
+  servers: MCPServerConfig[]
+}
+```
+
+**PUT /agent/mcp-servers/{name}**
+```typescript
+Request: MCPServerConfig
+Response: { success: boolean }
+```
+
+**DELETE /agent/mcp-servers/{name}**
+```typescript
+Response: { success: boolean }
+```
+
+**Key Design Decisions**:
+- Configurations stored in DynamoDB for low-latency reads during agent invocation
+- REST API allows runtime management without redeployment
+- Each config includes an `enabled` flag for instant enable/disable without deletion
+- `toolFilter` field allows fine-grained control over which tools from a server are exposed
+- Admin-only access via IAM authorization on the REST endpoints
+- Built-in server configs (RAG search, document metadata) are seeded on deployment and marked as `builtin: true`
+
+### 17. Built-in Action Groups
+
+**Responsibility**: Provide core document-oriented tools as action groups that are always available to the agent, independent of MCP configuration
+
+**Implementation**: Lambda functions wrapping existing shared modules (RAG, Vector Store, Chat History)
+
+**Built-in Tools**:
+```typescript
+// SearchDocuments — wraps existing RAG retrieval pipeline
+interface SearchDocumentsTool {
+  name: 'SearchDocuments'
+  description: 'Search uploaded documents for information relevant to a query. Returns matching text passages with document name and page number citations.'
+  parameters: {
+    query: { type: 'string'; description: 'The search query'; required: true }
+    maxResults: { type: 'integer'; description: 'Maximum number of results (1-20, default 5)'; required: false }
+  }
+}
+
+// GetDocumentMetadata — queries DynamoDB DocumentMetadata table
+interface GetDocumentMetadataTool {
+  name: 'GetDocumentMetadata'
+  description: 'Get metadata about a specific document including filename, upload date, page count, and processing status.'
+  parameters: {
+    documentId: { type: 'string'; description: 'The document ID to look up'; required: true }
+  }
+}
+
+// ListUserDocuments — queries DynamoDB DocumentMetadata table by user
+interface ListUserDocumentsTool {
+  name: 'ListUserDocuments'
+  description: 'List all documents uploaded by the current user with their metadata.'
+  parameters: {
+    limit: { type: 'integer'; description: 'Maximum number of documents to return (default 20)'; required: false }
+  }
+}
+```
+
+**Key Design Decisions**:
+- Built-in tools reuse existing shared modules (RAGSystem, VectorStore, DynamoDB) — no duplication
+- Always included in every agent invocation as a dedicated action group named `DocumentTools`
+- Separate from MCP-derived action groups so they can't be accidentally disabled
+- `SearchDocuments` is the agent's primary retrieval mechanism, replacing the static RAG pipeline when in agent mode
+
 ## Data Models
 
 ### DynamoDB Tables
@@ -717,6 +975,26 @@ interface DocumentMetadataRecord {
 
 // GSI: uploadedBy-index
 // PK: uploadedBy, SK: uploadedAt
+```
+
+#### MCPServerConfig Table
+```typescript
+interface MCPServerConfigRecord {
+  PK: string // "MCP#<serverName>"
+  SK: string // "CONFIG"
+  name: string
+  transport: 'stdio' | 'sse' | 'streamable-http'
+  command?: string
+  args?: string[]
+  url?: string
+  env?: Record<string, string>
+  enabled: boolean
+  builtin: boolean // true for system-provided configs, false for user-added
+  toolFilter?: string[]
+  description?: string
+  createdAt: number
+  updatedAt: number
+}
 ```
 
 ### OpenSearch Index Schema
@@ -903,6 +1181,22 @@ Response:
 }
 ```
 
+**Server → Client: agent_trace** (when agent mode is active and trace is enabled)
+```typescript
+{
+  type: "agent_trace"
+  data: {
+    step: string
+    reasoning?: string
+    toolUse?: {
+      name: string
+      input: Record<string, any>
+    }
+    observation?: string
+  }
+}
+```
+
 ### Bedrock API Request Format
 
 **Claude Haiku 4.5 Request**
@@ -936,6 +1230,52 @@ Response:
   "inputText": "Text to embed...",
   "dimensions": 1024,
   "normalize": true
+}
+```
+
+**InvokeInlineAgent Request** (Bedrock Agent Runtime)
+```json
+{
+  "sessionId": "<userId>-<sessionId>",
+  "foundationModel": "anthropic.claude-haiku-4-5-20251001-v1:0",
+  "instruction": "You are a document assistant. Use SearchDocuments to find relevant information before answering. Use GetDocumentMetadata when users ask about specific documents. Always cite which document and page your answer comes from.",
+  "inputText": "User's query text",
+  "enableTrace": true,
+  "actionGroups": [
+    {
+      "actionGroupName": "DocumentTools",
+      "description": "Built-in tools for searching and managing documents",
+      "actionGroupExecutor": { "customControl": "RETURN_CONTROL" },
+      "functionSchema": {
+        "functions": [
+          {
+            "name": "SearchDocuments",
+            "description": "Search uploaded documents for relevant information",
+            "parameters": {
+              "query": { "type": "string", "description": "Search query", "required": true },
+              "maxResults": { "type": "integer", "description": "Max results (1-20)", "required": false }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "actionGroupName": "mcp-server-name",
+      "description": "Tools from MCP server: <description>",
+      "actionGroupExecutor": { "customControl": "RETURN_CONTROL" },
+      "functionSchema": {
+        "functions": [
+          "... dynamically populated from MCP tools/list ..."
+        ]
+      }
+    }
+  ],
+  "inlineSessionState": {
+    "sessionAttributes": {
+      "userId": "<userId>",
+      "environment": "<environment>"
+    }
+  }
 }
 ```
 
@@ -996,4 +1336,28 @@ Response:
 
 *For any* API error returned by the Bedrock_Service, the Lambda_Handler should retry the request up to 3 times with exponentially increasing delays between attempts.
 
-**Validates
+**Validates: Requirements 3.3**
+
+### Property 10: Agent Fallback to RAG Pipeline
+
+*For any* failure in the InlineAgent invocation (API error, timeout, or circuit breaker open), the system should fall back to the standard RAG pipeline rather than returning an error to the user.
+
+**Validates: Requirements 14.2, 14.4**
+
+### Property 11: MCP Tool Discovery Consistency
+
+*For any* MCP server configuration marked as `enabled: true` in the registry, the MCP Client Bridge should discover and include all non-filtered tools from that server in the agent's action groups. Disabled servers should never contribute tools.
+
+**Validates: Requirements 16.1**
+
+### Property 12: Agent Tool Execution Isolation
+
+*For any* tool execution triggered by the agent via RETURN_CONTROL, the tool should execute within the Lambda handler's security context and IAM permissions. MCP tool execution should not bypass the existing rate limiting, audit logging, or circuit breaker protections.
+
+**Validates: Requirements 10.1, 11.1, 14.4**
+
+### Property 13: Agent Session Continuity
+
+*For any* multi-turn agent conversation using the same sessionId, the agent should maintain context from previous turns without requiring the client to resend conversation history.
+
+**Validates: Requirements 3.4**

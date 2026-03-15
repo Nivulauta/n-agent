@@ -42,3 +42,8 @@ output "bedrock_vpc_endpoint_id" {
   description = "Bedrock VPC Endpoint ID"
   value       = aws_vpc_endpoint.bedrock.id
 }
+
+output "bedrock_agent_runtime_vpc_endpoint_id" {
+  description = "Bedrock Agent Runtime VPC Endpoint ID"
+  value       = aws_vpc_endpoint.bedrock_agent_runtime.id
+}

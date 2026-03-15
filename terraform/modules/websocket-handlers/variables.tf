@@ -77,3 +77,13 @@ variable "lambda_security_group_id" {
   description = "Security group ID for Lambda functions"
   type        = string
 }
+
+variable "mcp_server_config_table_name" {
+  description = "Name of the DynamoDB MCP server config table"
+  type        = string
+}
+
+variable "mcp_server_config_table_arn" {
+  description = "ARN of the DynamoDB MCP server config table"
+  type        = string
+}

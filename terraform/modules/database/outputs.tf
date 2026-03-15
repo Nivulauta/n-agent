@@ -56,3 +56,13 @@ output "connections_table_arn" {
   description = "WebSocket Connections table ARN"
   value       = aws_dynamodb_table.connections.arn
 }
+
+output "mcp_server_config_table_name" {
+  description = "MCP Server Config table name"
+  value       = aws_dynamodb_table.mcp_server_config.name
+}
+
+output "mcp_server_config_table_arn" {
+  description = "MCP Server Config table ARN"
+  value       = aws_dynamodb_table.mcp_server_config.arn
+}

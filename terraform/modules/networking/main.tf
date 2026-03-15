@@ -250,6 +250,21 @@ resource "aws_vpc_endpoint" "bedrock" {
   }
 }
 
+# VPC Endpoint for Bedrock Agent Runtime
+resource "aws_vpc_endpoint" "bedrock_agent_runtime" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.bedrock-agent-runtime"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name        = "${var.environment}-chatbot-bedrock-agent-runtime-endpoint"
+    Environment = var.environment
+  }
+}
+
 # Security Group for VPC Endpoints
 resource "aws_security_group" "vpc_endpoints" {
   name_prefix = "${var.environment}-vpc-endpoints-"

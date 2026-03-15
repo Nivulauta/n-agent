@@ -107,3 +107,13 @@ variable "authorizer_function_name" {
   description = "Name of the Lambda Authorizer function"
   type        = string
 }
+
+variable "mcp_servers_function_name" {
+  description = "Name of the MCP Servers Lambda function"
+  type        = string
+}
+
+variable "mcp_servers_invoke_arn" {
+  description = "Invoke ARN of the MCP Servers Lambda function"
+  type        = string
+}

@@ -256,3 +256,82 @@ resource "aws_dynamodb_table" "connections" {
   }
 }
 
+
+# MCP Server Config Table
+resource "aws_dynamodb_table" "mcp_server_config" {
+  name         = "${var.environment}-chatbot-mcp-server-config"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "PK"
+  range_key    = "SK"
+
+  attribute {
+    name = "PK"
+    type = "S"
+  }
+
+  attribute {
+    name = "SK"
+    type = "S"
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = var.kms_key_arn
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = {
+    Name        = "${var.environment}-chatbot-mcp-server-config"
+    Environment = var.environment
+  }
+}
+
+# Seed built-in MCP server configs on deployment
+
+resource "aws_dynamodb_table_item" "mcp_seed_document_tools" {
+  table_name = aws_dynamodb_table.mcp_server_config.name
+  hash_key   = aws_dynamodb_table.mcp_server_config.hash_key
+  range_key  = aws_dynamodb_table.mcp_server_config.range_key
+
+  item = jsonencode({
+    PK          = { S = "MCP#DocumentTools" }
+    SK          = { S = "CONFIG" }
+    name        = { S = "DocumentTools" }
+    transport   = { S = "stdio" }
+    enabled     = { BOOL = true }
+    builtin     = { BOOL = true }
+    description = { S = "Built-in document search, metadata, and listing tools" }
+  })
+
+  lifecycle {
+    ignore_changes = [item]
+  }
+}
+
+resource "aws_dynamodb_table_item" "mcp_seed_aws_api" {
+  table_name = aws_dynamodb_table.mcp_server_config.name
+  hash_key   = aws_dynamodb_table.mcp_server_config.hash_key
+  range_key  = aws_dynamodb_table.mcp_server_config.range_key
+
+  item = jsonencode({
+    PK        = { S = "MCP#aws-api-mcp-server" }
+    SK        = { S = "CONFIG" }
+    name      = { S = "aws-api-mcp-server" }
+    transport = { S = "stdio" }
+    command   = { S = "uvx" }
+    args      = { L = [{ S = "awslabs.aws-api-mcp-server@latest" }] }
+    env = { M = {
+      AWS_REGION = { S = "us-east-1" }
+    } }
+    enabled     = { BOOL = true }
+    builtin     = { BOOL = true }
+    description = { S = "AWS API MCP Server — interact with AWS services through CLI commands" }
+  })
+
+  lifecycle {
+    ignore_changes = [item]
+  }
+}

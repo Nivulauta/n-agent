@@ -206,6 +206,23 @@ This document specifies the requirements for an AWS-based RAG (Retrieval-Augment
 4. THE system SHALL provide a CloudWatch dashboard displaying key performance indicators
 5. WHEN response times exceed 2 seconds, THE system SHALL trigger a CloudWatch alarm
 
+### Requirement 16: Inline Bedrock Agent with Configurable MCP Interface
+
+**User Story:** As a system administrator, I want the chatbot to support multi-step reasoning with pluggable tools via MCP servers, so that the system can be extended with new capabilities without code changes.
+
+#### Acceptance Criteria
+
+1. WHEN a query is classified as agent-eligible, THE system SHALL invoke the Bedrock InvokeInlineAgent API with dynamically-configured action groups
+2. THE system SHALL discover tools from configured MCP servers at runtime and translate them into Bedrock action group schemas
+3. WHEN an MCP server configuration is added or removed via the REST API, THE system SHALL reflect the change on the next agent invocation without requiring code deployment
+4. THE system SHALL include built-in action groups (SearchDocuments, GetDocumentMetadata, ListUserDocuments) in every agent invocation
+5. WHEN the agent returns control for tool execution, THE Lambda_Handler SHALL execute the tool locally and return results to the agent loop
+6. THE system SHALL enforce a maximum iteration limit per agent turn to prevent runaway tool-calling loops
+7. WHEN the InlineAgent invocation fails, THE system SHALL fall back to the standard RAG pipeline
+8. THE system SHALL support MCP server transports: stdio (child process), SSE (remote), and streamable-http (remote)
+9. THE system SHALL gate agent functionality behind a feature flag (USE_BEDROCK_AGENT environment variable)
+10. THE system SHALL stream agent response chunks to the client via WebSocket in real-time
+
 ## Requirements Summary
 
-This specification defines a comprehensive RAG chatbot system with 15 core requirements covering authentication, real-time communication, AI integration, document management, vector search, persistence, scalability, security, cost optimization, deployment automation, error handling, and monitoring. The system uses serverless AWS services to achieve cost efficiency while maintaining high performance and security standards.
+This specification defines a comprehensive RAG chatbot system with 16 core requirements covering authentication, real-time communication, AI integration, document management, vector search, persistence, scalability, security, cost optimization, deployment automation, error handling, monitoring, and inline agent capabilities with configurable MCP tool integration. The system uses serverless AWS services to achieve cost efficiency while maintaining high performance and security standards.

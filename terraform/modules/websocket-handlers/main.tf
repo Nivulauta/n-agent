@@ -294,13 +294,15 @@ resource "aws_iam_role_policy" "message_policy" {
         Effect = "Allow"
         Action = [
           "bedrock:InvokeModel",
-          "bedrock:InvokeModelWithResponseStream"
+          "bedrock:InvokeModelWithResponseStream",
+          "bedrock:InvokeInlineAgent"
         ]
         Resource = [
           "arn:aws:bedrock:*::foundation-model/*",
           "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/*",
           "arn:aws:bedrock:*:*:inference-profile/*",
-          "arn:aws:bedrock:${data.aws_region.current.name}:*:inference-profile/*"
+          "arn:aws:bedrock:${data.aws_region.current.name}:*:inference-profile/*",
+          "arn:aws:bedrock:*:*:*"
         ]
       },
       {
@@ -321,6 +323,18 @@ resource "aws_iam_role_policy" "message_policy" {
           "ec2:UnassignPrivateIpAddresses"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = var.mcp_server_config_table_arn
       },
       {
         Effect = "Allow"
@@ -359,14 +373,15 @@ resource "aws_lambda_function" "message" {
 
   environment {
     variables = {
-      CONNECTIONS_TABLE   = var.connections_table_name
-      WEBSOCKET_API_ID    = var.websocket_api_id
-      RATE_LIMITS_TABLE   = var.rate_limits_table_name
-      CHAT_HISTORY_TABLE  = var.chat_history_table_name
-      KMS_KEY_ID          = var.kms_key_arn
-      OPENSEARCH_ENDPOINT = var.opensearch_endpoint
-      CACHE_HOST          = var.cache_endpoint
-      CACHE_PORT          = tostring(var.cache_port)
+      CONNECTIONS_TABLE       = var.connections_table_name
+      WEBSOCKET_API_ID        = var.websocket_api_id
+      RATE_LIMITS_TABLE       = var.rate_limits_table_name
+      CHAT_HISTORY_TABLE      = var.chat_history_table_name
+      KMS_KEY_ID              = var.kms_key_arn
+      OPENSEARCH_ENDPOINT     = var.opensearch_endpoint
+      CACHE_HOST              = var.cache_endpoint
+      CACHE_PORT              = tostring(var.cache_port)
+      MCP_SERVER_CONFIG_TABLE = var.mcp_server_config_table_name
     }
   }
 
