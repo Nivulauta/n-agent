@@ -19,28 +19,6 @@ resource "aws_cloudwatch_log_group" "lambda_document_processor" {
   }
 }
 
-# CloudWatch Log Group for Lambda - Embedding Generator
-resource "aws_cloudwatch_log_group" "lambda_embedding_generator" {
-  name              = "/aws/lambda/${var.environment}-chatbot-embedding-generator"
-  retention_in_days = 365
-
-  tags = {
-    Name        = "${var.environment}-chatbot-lambda-embedding-generator-logs"
-    Environment = var.environment
-  }
-}
-
-# CloudWatch Log Group for Lambda - Upload Handler
-resource "aws_cloudwatch_log_group" "lambda_upload_handler" {
-  name              = "/aws/lambda/${var.environment}-chatbot-upload-handler"
-  retention_in_days = 365
-
-  tags = {
-    Name        = "${var.environment}-chatbot-lambda-upload-handler-logs"
-    Environment = var.environment
-  }
-}
-
 # CloudWatch Log Groups for Audit Logging
 # Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5
 

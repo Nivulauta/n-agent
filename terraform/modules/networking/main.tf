@@ -52,6 +52,7 @@ resource "aws_subnet" "private" {
 
 # Elastic IP for NAT Gateway
 resource "aws_eip" "nat" {
+  count  = var.use_nat_instance ? 0 : 1
   domain = "vpc"
 
   tags = {
@@ -62,9 +63,10 @@ resource "aws_eip" "nat" {
   depends_on = [aws_internet_gateway.main]
 }
 
-# NAT Gateway
+# NAT Gateway (production)
 resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
+  count         = var.use_nat_instance ? 0 : 1
+  allocation_id = aws_eip.nat[0].id
   subnet_id     = aws_subnet.public[0].id
 
   tags = {
@@ -73,6 +75,83 @@ resource "aws_nat_gateway" "main" {
   }
 
   depends_on = [aws_internet_gateway.main]
+}
+
+# --- NAT Instance (dev/cost-saving alternative) ---
+
+# Find the latest Amazon Linux 2023 AMI for NAT
+data "aws_ami" "amazon_linux_2023" {
+  count       = var.use_nat_instance ? 1 : 0
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+# Security group for NAT instance
+resource "aws_security_group" "nat_instance" {
+  count       = var.use_nat_instance ? 1 : 0
+  name_prefix = "${var.environment}-nat-instance-"
+  description = "Security group for NAT instance"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "All traffic from private subnets"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = var.private_subnet_cidrs
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "${var.environment}-chatbot-nat-instance-sg"
+    Environment = var.environment
+  }
+}
+
+# NAT instance
+resource "aws_instance" "nat" {
+  count                       = var.use_nat_instance ? 1 : 0
+  ami                         = data.aws_ami.amazon_linux_2023[0].id
+  instance_type               = var.nat_instance_type
+  subnet_id                   = aws_subnet.public[0].id
+  vpc_security_group_ids      = [aws_security_group.nat_instance[0].id]
+  source_dest_check           = false
+  associate_public_ip_address = true
+
+  user_data = <<-EOF
+    #!/bin/bash
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+    sysctl -p
+    dnf install -y iptables-services
+    iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
+    iptables -A FORWARD -i ens5 -o ens5 -m state --state RELATED,ESTABLISHED -j ACCEPT
+    iptables -A FORWARD -i ens5 -o ens5 -j ACCEPT
+    service iptables save
+    systemctl enable iptables
+  EOF
+
+  tags = {
+    Name        = "${var.environment}-chatbot-nat-instance"
+    Environment = var.environment
+  }
 }
 
 # Public Route Table
@@ -94,15 +173,26 @@ resource "aws_route_table" "public" {
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
-  }
-
   tags = {
     Name        = "${var.environment}-chatbot-private-rt"
     Environment = var.environment
   }
+}
+
+# Private route via NAT Gateway
+resource "aws_route" "private_nat_gateway" {
+  count                  = var.use_nat_instance ? 0 : 1
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.main[0].id
+}
+
+# Private route via NAT Instance
+resource "aws_route" "private_nat_instance" {
+  count                  = var.use_nat_instance ? 1 : 0
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  network_interface_id   = aws_instance.nat[0].primary_network_interface_id
 }
 
 # Public Route Table Associations
