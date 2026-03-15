@@ -253,6 +253,18 @@ resource "aws_iam_role_policy" "generate_embeddings" {
         ]
         Resource = "${var.documents_bucket_arn}/processed/*"
       },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = var.documents_bucket_arn
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["processed/*"]
+          }
+        }
+      },
       # Bedrock permissions - invoke Titan Embeddings model
       {
         Effect = "Allow"

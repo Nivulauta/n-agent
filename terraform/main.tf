@@ -22,7 +22,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "AWS-Claude-RAG-Chatbot"
+      Project     = "Nivulauta Agent"
       Environment = var.environment
       ManagedBy   = "Terraform"
     }
@@ -57,6 +57,7 @@ module "networking" {
   availability_zones   = var.availability_zones
   private_subnet_cidrs = var.private_subnet_cidrs
   public_subnet_cidrs  = var.public_subnet_cidrs
+  use_nat_instance     = var.use_nat_instance
 }
 
 module "storage" {

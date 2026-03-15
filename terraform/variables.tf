@@ -34,6 +34,12 @@ variable "public_subnet_cidrs" {
   default     = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 }
 
+variable "use_nat_instance" {
+  description = "Use a NAT instance instead of NAT Gateway (saves ~$32/month for dev environments)"
+  type        = bool
+  default     = false
+}
+
 variable "opensearch_instance_type" {
   description = "OpenSearch instance type"
   type        = string

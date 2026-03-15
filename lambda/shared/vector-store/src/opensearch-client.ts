@@ -90,46 +90,78 @@ export class OpenSearchVectorStore implements VectorStore {
      * Requirements: 6.3
      */
     async batchIndexEmbeddings(embeddings: Embedding[]): Promise<void> {
-        if (embeddings.length === 0) {
-            return;
-        }
+            if (embeddings.length === 0) {
+                return;
+            }
 
-        try {
-            // Build bulk request body
-            const body = embeddings.flatMap(embedding => [
-                // Action and metadata
-                { index: { _index: this.indexName, _id: embedding.chunkId } },
-                // Document source
-                {
-                    chunkId: embedding.chunkId,
-                    documentId: embedding.metadata.documentId,
-                    documentName: embedding.metadata.documentName,
-                    pageNumber: embedding.metadata.pageNumber,
-                    chunkIndex: embedding.metadata.chunkIndex,
-                    text: embedding.text,
-                    embedding: embedding.vector,
-                    uploadedAt: embedding.metadata.uploadedAt,
-                    uploadedBy: embedding.metadata.uploadedBy || 'system'
+            // Process in smaller chunks to avoid overwhelming OpenSearch
+            const BATCH_SIZE = 25;
+            const MAX_RETRIES = 3;
+
+            for (let i = 0; i < embeddings.length; i += BATCH_SIZE) {
+                const batch = embeddings.slice(i, i + BATCH_SIZE);
+                let lastError: Error | undefined;
+
+                for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                    try {
+                        if (attempt > 0) {
+                            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+                            console.log(`Retry attempt ${attempt}/${MAX_RETRIES} after ${delay}ms...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+
+                        const body = batch.flatMap(embedding => [
+                            { index: { _index: this.indexName, _id: embedding.chunkId } },
+                            {
+                                chunkId: embedding.chunkId,
+                                documentId: embedding.metadata.documentId,
+                                documentName: embedding.metadata.documentName,
+                                pageNumber: embedding.metadata.pageNumber,
+                                chunkIndex: embedding.metadata.chunkIndex,
+                                text: embedding.text,
+                                embedding: embedding.vector,
+                                uploadedAt: embedding.metadata.uploadedAt,
+                                uploadedBy: embedding.metadata.uploadedBy || 'system'
+                            }
+                        ]);
+
+                        const response = await this.client.bulk({ body });
+
+                        if (response.body.errors) {
+                            const erroredDocuments = response.body.items.filter((item: any) => item.index?.error);
+                            // Check if errors are retryable (429 Too Many Requests)
+                            const retryable = erroredDocuments.some((item: any) => item.index?.status === 429);
+                            if (retryable && attempt < MAX_RETRIES) {
+                                lastError = new Error(`Bulk indexing rate limited for ${erroredDocuments.length} documents`);
+                                continue;
+                            }
+                            console.error('Bulk indexing errors:', JSON.stringify(erroredDocuments, null, 2));
+                            throw new Error(`Bulk indexing failed for ${erroredDocuments.length} documents`);
+                        }
+
+                        lastError = undefined;
+                        break; // Success, move to next batch
+                    } catch (error) {
+                        lastError = error instanceof Error ? error : new Error(String(error));
+                        const isRetryable = lastError.message.includes('Too Many Requests') ||
+                            lastError.message.includes('429') ||
+                            lastError.message.includes('rate limited');
+                        if (!isRetryable || attempt >= MAX_RETRIES) {
+                            throw new Error(`Failed to batch index embeddings: ${lastError}`);
+                        }
+                    }
                 }
-            ]);
 
-            const response = await this.client.bulk({
-                body
-            });
+                if (lastError) {
+                    throw new Error(`Failed to batch index embeddings after ${MAX_RETRIES} retries: ${lastError}`);
+                }
 
-            // Check for errors in bulk response
-            if (response.body.errors) {
-                const erroredDocuments = response.body.items.filter((item: any) => item.index?.error);
-                console.error('Bulk indexing errors:', JSON.stringify(erroredDocuments, null, 2));
-                throw new Error(`Bulk indexing failed for ${erroredDocuments.length} documents`);
+                console.log(`Indexed batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(embeddings.length / BATCH_SIZE)} (${batch.length} embeddings)`);
             }
 
             console.log(`Successfully indexed ${embeddings.length} embeddings`);
-        } catch (error) {
-            console.error('Error in batch indexing:', error);
-            throw new Error(`Failed to batch index embeddings: ${error}`);
         }
-    }
+
 
     /**
      * Search for similar vectors using k-NN query

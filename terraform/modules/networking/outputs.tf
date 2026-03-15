@@ -19,8 +19,13 @@ output "public_subnet_ids" {
 }
 
 output "nat_gateway_id" {
-  description = "NAT Gateway ID"
-  value       = aws_nat_gateway.main.id
+  description = "NAT Gateway ID (null when using NAT instance)"
+  value       = var.use_nat_instance ? null : aws_nat_gateway.main[0].id
+}
+
+output "nat_instance_id" {
+  description = "NAT Instance ID (null when using NAT Gateway)"
+  value       = var.use_nat_instance ? aws_instance.nat[0].id : null
 }
 
 output "s3_vpc_endpoint_id" {
